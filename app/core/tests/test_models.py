@@ -72,19 +72,11 @@ class ModelTests(TestCase):
 
         self.assertEqual(str(wishlist), wishlist.title)
 
-    # def test_create_product(self):
-    #     """Test creating an product is successful."""
-    #     user = create_user()
-    #     wishlist = models.Wishlist.objects.create(
-    #         user=user,
-    #         title="Sample wishlist",
-    #         description="this is a test wishlist description",
-    #         occasion_date=datetime.date(year=2020, month=1, day=1),
-    #         address="123 Sample Street, Sampleland, 12QW 6ER",
-    #     )
+    def test_create_product(self):
+        """Test creating a product is successful."""
+        user = create_user()
+        product = models.Product.objects.create(
+            user=user, name='product1', price=10.99
+        )
 
-    #     product = models.Product.objects.create(
-    #         wishlist=wishlist, name="Product1", price=Decimal("5.50")
-    #     )
-
-    #     self.assertEqual(str(product), product.name)
+        self.assertEqual(str(product), product.name)
