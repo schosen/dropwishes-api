@@ -3,6 +3,8 @@ Views for the user API.
 """
 
 from rest_framework import generics, authentication, permissions, status
+from rest_framework.views import APIView
+
 from user.serializers import (
     UserSerializer,
     AuthTokenSerializer,
@@ -42,11 +44,14 @@ class ManageUserView(generics.RetrieveUpdateAPIView):
 
 
 class ChangePasswordView(generics.UpdateAPIView):
+    """Change password for the authenticated user."""
+
     authentication_classes = [authentication.TokenAuthentication]
     permission_classes = [permissions.IsAuthenticated]
     serializer_class = ChangePasswordSerializer
 
     def update(self, request, *args, **kwargs):
+        """update password aand auth token"""
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         user = serializer.save()
@@ -63,14 +68,18 @@ class ChangePasswordView(generics.UpdateAPIView):
 
 
 class ChangeEmailView(generics.UpdateAPIView):
+    """Change email for the authenticated user."""
+
     authentication_classes = [authentication.TokenAuthentication]
     permission_classes = [permissions.IsAuthenticated]
     serializer_class = ChangeEmailSerializer
 
     def get_object(self):
+        """Return user object"""
         return self.request.user
 
     def update(self, request, *args, **kwargs):
+        """update password"""
         instance = self.get_object()
         serializer = self.get_serializer(
             instance, data=request.data, partial=True
@@ -81,3 +90,38 @@ class ChangeEmailView(generics.UpdateAPIView):
             {'detail': 'Email updated successfully.'},
             status=status.HTTP_200_OK,
         )
+
+
+class SoftDeleteUserView(generics.DestroyAPIView):
+    """Soft delete the authenticated user."""
+
+    serializer_class = UserSerializer
+    authentication_classes = [authentication.TokenAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_object(self):
+        """Return user object"""
+        return self.request.user
+
+    def perform_destroy(self, instance):
+        """Set is active to false and return response"""
+        # Perform soft delete by setting is_active to False
+        instance.is_active = False
+        instance.save()
+        return Response(
+            {'detail': 'user deleted'},
+            status=status.HTTP_204_NO_CONTENT,
+        )
+
+
+class LogoutView(APIView):
+    """Logout authenticated user."""
+
+    authentication_classes = [authentication.TokenAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, format=None):
+        """Remove auth token and return response"""
+        # delete the token to force a login
+        request.user.auth_token.delete()
+        return Response(status=status.HTTP_200_OK)

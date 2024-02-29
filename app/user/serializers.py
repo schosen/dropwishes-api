@@ -15,34 +15,69 @@ from rest_framework import serializers
 class UserSerializer(serializers.ModelSerializer):
     """Serializer for the user object."""
 
+    # email_verify and password field to verify email and password, unsure if this will work
+    confirm_email = serializers.EmailField(required=True, write_only=True)
+    confirm_password = serializers.CharField(
+        max_length=128,
+        style={'input_type': 'password'},
+        trim_whitespace=False,
+        write_only=True,
+        required=True,
+    )
+
     # make password and email read only on update
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         if self.instance is not None:
             # if object is being created the instance doesn't exist yet, otherwise it exists.
+            # therefore we can make read only for updates
             self.fields.get('email').read_only = True
             self.fields.get('password').read_only = True
-            # An even better solution is to make the field read only instead of popping it.
 
     class Meta:
         model = get_user_model()
         fields = [
             'email',
+            'confirm_email',
             'password',
+            'confirm_password',
             'first_name',
             'last_name',
             'gender',
             'birthday',
         ]
-        extra_kwargs = {'password': {'write_only': True, 'min_length': 6}}
+        extra_kwargs = {
+            'password': {'write_only': True, 'min_length': 6},
+            'confirm_password': {'write_only': True, 'min_length': 6},
+        }
+
+    def validate(self, data):
+        if data['password'] != data['confirm_password']:
+            raise serializers.ValidationError(
+                {
+                    'confirm_password': _(
+                        "The two password fields didn't match."
+                    )
+                }
+            )
+        password_validation.validate_password(
+            data['password'], self.context['request'].user
+        )
+
+        if data['email'] != data['confirm_email']:
+            raise serializers.ValidationError(
+                {'confirm_email': _("The two email fields didn't match.")}
+            )
+
+        return data
 
     def create(self, validated_data):
         """Create and return a user with encrypted password."""
-        # below to validate password? need to test to see.
-        # password = validated_data.pop('password', None)
-        # password_validation.validate_password(
-        #     password, self.context['request'].user
-        # )
+
+        # remove confirm_email and confirm_password fields
+        validated_data.pop('confirm_email', None)
+        validated_data.pop('confirm_password', None)
+
         return get_user_model().objects.create_user(**validated_data)
 
     def update(self, instance, validated_data):
@@ -171,8 +206,6 @@ class ChangeEmailSerializer(serializers.Serializer):
             raise serializers.ValidationError(
                 _("New email and confirmation do not match.")
             )
-        # ADD EMAIL VALIDATION HERE?
-
         return data
 
     def save(self, **kwargs):

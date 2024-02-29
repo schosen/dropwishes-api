@@ -30,6 +30,9 @@ services:
       - POSTGRES_DB=devdb
       - POSTGRES_USER=devuser
       - POSTGRES_PASSWORD=changeme
+# adding port mapping to access table locally
+    ports:
+      - "5420:5432"
 
 volumes:
   dev-db-data:

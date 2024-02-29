@@ -23,4 +23,10 @@ urlpatterns = [
         views.ChangeEmailView.as_view(),
         name='change-email',
     ),
+    path(
+        'delete-user/',
+        views.SoftDeleteUserView.as_view(),
+        name='delete-user',
+    ),
+    path('token/logout/', views.LogoutView.as_view(), name='logout'),
 ]
