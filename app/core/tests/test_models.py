@@ -5,7 +5,6 @@ Test for models.
 from unittest.mock import patch
 from django.test import TestCase
 from django.contrib.auth import get_user_model
-from decimal import Decimal
 import datetime
 from core import models
 

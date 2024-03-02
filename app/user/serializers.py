@@ -15,7 +15,8 @@ from rest_framework import serializers
 class UserSerializer(serializers.ModelSerializer):
     """Serializer for the user object."""
 
-    # email_verify and password field to verify email and password, unsure if this will work
+    # email_verify and password field to verify email
+    # and password, unsure if this will work
     confirm_email = serializers.EmailField(required=True, write_only=True)
     confirm_password = serializers.CharField(
         max_length=128,
@@ -29,8 +30,9 @@ class UserSerializer(serializers.ModelSerializer):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         if self.instance is not None:
-            # if object is being created the instance doesn't exist yet, otherwise it exists.
-            # therefore we can make read only for updates
+            # if object is being created the instance doesn't exist
+            # yet, otherwise it exists.therefore we can make read
+            #  only for updates
             self.fields.get('email').read_only = True
             self.fields.get('password').read_only = True
 
@@ -52,8 +54,8 @@ class UserSerializer(serializers.ModelSerializer):
         }
 
     # def validate(self, data):
-    # TO-DO: read-only fields return code 200 need to raise validation error for them
-    # return data
+    # TO-DO: read-only fields return code 200 need to raise
+    # validation error for them return data
 
     def create(self, validated_data):
         """Create and return a user with encrypted password."""
@@ -148,7 +150,7 @@ class ChangePasswordSerializer(serializers.Serializer):
         if not user.check_password(value):
             raise serializers.ValidationError(
                 _(
-                    'Your old password was entered incorrectly. Please enter it again.'
+                    'Your old password was entered incorrectly. Please enter it again.'  # noqa: E501
                 )
             )
         return value
