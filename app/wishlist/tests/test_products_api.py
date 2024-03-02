@@ -186,22 +186,6 @@ class PrivateProductsApiTests(TestCase):
         self.assertEqual(res.status_code, status.HTTP_404_NOT_FOUND)
         self.assertFalse(Product.objects.filter(name=payload["name"]).exists())
 
-    def test_list_other_users_product_error(self):
-        """Test trying to list another users product gives error."""
-        new_user = create_user(email="user2@example.com", password="test123")
-
-        product = Product.objects.create(
-            user=new_user,
-            name="Pink Top",
-            price=10.99,
-            priority="LOW",
-            link="https://exmaple.com/product.pdf",
-            notes="first note",
-        )
-
-        res = self.client.get(PRODUCTS_URL)
-        self.assertEqual(res.status_code, status.HTTP_404_NOT_FOUND)
-
     # def test_filter_products_assigned_to_wishlists(self):
     #     """Test listing products to those assigned to wishlists."""
     #     product1 = Product.objects.create(

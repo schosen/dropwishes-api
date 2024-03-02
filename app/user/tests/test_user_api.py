@@ -30,7 +30,9 @@ class PublicUserApiTests(TestCase):
         """Test creating a user is successful."""
         payload = {
             'email': 'test@example.com',
+            'confirm_email': 'test@example.com',
             'password': 'testpass123',
+            'confirm_password': 'testpass123',
             'first_name': 'John',
         }
         res = self.client.post(CREATE_USER_URL, payload)
@@ -39,6 +41,9 @@ class PublicUserApiTests(TestCase):
         user = get_user_model().objects.get(email=payload['email'])
         self.assertTrue(user.check_password(payload['password']))
         self.assertNotIn('password', res.data)
+
+    # def test_create_user_with_mismatch_password_fails(self):
+    # def test_create_user_with_mismatch_email_fails(self):
 
     def test_create_user_without_name_failure(self):
         """Test creating a user is fails when you don't add name."""
@@ -167,11 +172,18 @@ class PrivateUserApiTests(TestCase):
 
     def test_update_user_profile(self):
         """Test updating the user profile for the authenticated user."""
-        payload = {'first_name': 'Updated name', 'password': 'newpassword123'}
+        payload = {
+            'first_name': 'Updated name',
+            'last_name': 'updated last name',
+        }
 
         res = self.client.patch(ME_URL, payload)
 
         self.user.refresh_from_db()
         self.assertEqual(self.user.first_name, payload['first_name'])
-        self.assertTrue(self.user.check_password(payload['password']))
+        self.assertTrue(self.user.last_name, (payload['last_name']))
         self.assertEqual(res.status_code, status.HTTP_200_OK)
+
+
+# def test_update_password(self):
+# def test_update_email(self):

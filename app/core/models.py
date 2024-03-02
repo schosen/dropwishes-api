@@ -5,12 +5,20 @@ Database models.
 from django.conf import settings
 from django.db import models
 import uuid
-
+import os
 from django.contrib.auth.models import (
     AbstractBaseUser,
     BaseUserManager,
     PermissionsMixin,
 )
+
+
+def product_image_file_path(instance, filename):
+    """Generate file path for new product image."""
+    ext = os.path.splitext(filename)[1]
+    filename = f'{uuid.uuid4()}{ext}'
+
+    return os.path.join('uploads', 'product', filename)
 
 
 class UserManager(BaseUserManager):
@@ -104,7 +112,7 @@ class Product(models.Model):
     )
     price = models.DecimalField(max_digits=10, decimal_places=2)
     link = models.URLField(max_length=255, blank=True, null=True)
-    # image = models.ImageField(blank=True)
+    image = models.ImageField(null=True, upload_to=product_image_file_path)
     notes = models.TextField(blank=True)
 
     def __str__(self):

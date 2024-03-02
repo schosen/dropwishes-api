@@ -51,8 +51,13 @@ class UserSerializer(serializers.ModelSerializer):
             'confirm_password': {'write_only': True, 'min_length': 6},
         }
 
-    def validate(self, data):
-        if data['password'] != data['confirm_password']:
+    # def validate(self, data):
+    # TO-DO: read-only fields return code 200 need to raise validation error for them
+    # return data
+
+    def create(self, validated_data):
+        """Create and return a user with encrypted password."""
+        if validated_data['password'] != validated_data['confirm_password']:
             raise serializers.ValidationError(
                 {
                     'confirm_password': _(
@@ -61,18 +66,13 @@ class UserSerializer(serializers.ModelSerializer):
                 }
             )
         password_validation.validate_password(
-            data['password'], self.context['request'].user
+            validated_data['password'], self.context['request'].user
         )
 
-        if data['email'] != data['confirm_email']:
+        if validated_data['email'] != validated_data['confirm_email']:
             raise serializers.ValidationError(
                 {'confirm_email': _("The two email fields didn't match.")}
             )
-
-        return data
-
-    def create(self, validated_data):
-        """Create and return a user with encrypted password."""
 
         # remove confirm_email and confirm_password fields
         validated_data.pop('confirm_email', None)
