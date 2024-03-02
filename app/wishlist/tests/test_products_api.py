@@ -3,6 +3,10 @@ Tests for the products API.
 """
 
 import datetime
+import tempfile
+import os
+
+from PIL import Image
 from decimal import Decimal
 
 from django.contrib.auth import get_user_model
@@ -21,6 +25,11 @@ from wishlist.serializers import ProductSerializer
 
 
 PRODUCTS_URL = reverse('wishlist:product-list')
+
+
+def image_upload_url(product_id):
+    """Create and return an image upload URL."""
+    return reverse('wishlist:product-upload-image', args=[product_id])
 
 
 def product_detail_url(product_id):
@@ -50,6 +59,20 @@ def create_wishlist(user, **params):
 
     wishlist = Wishlist.objects.create(user=user, **defaults)
     return wishlist
+
+
+def create_product(user, **params):
+    """Create and return a product."""
+    defaults = {
+        "name": "Sample product",
+        "price": Decimal("5.99"),
+        "priority": "HIGH",
+        "link": "https://youtube.com",
+        "notes": "smaple notes",
+    }
+    defaults.update(params)
+    product = Product.objects.create(user=user, **defaults)
+    return product
 
 
 class PublicProductsApiTests(TestCase):
@@ -116,9 +139,7 @@ class PrivateProductsApiTests(TestCase):
 
     def test_delete_product(self):
         """Test deleting a product."""
-        product = Product.objects.create(
-            user=self.user, name="Pink Top", price=10.99
-        )
+        product = create_product(user=self.user)
 
         url = product_detail_url(product.id)
         res = self.client.delete(url)
@@ -131,14 +152,7 @@ class PrivateProductsApiTests(TestCase):
         """Test changing the product's user results in an error."""
         new_user = create_user(email="user2@example.com", password="test123")
 
-        product = Product.objects.create(
-            user=self.user,
-            name="Pink Top",
-            price=10.99,
-            priority="LOW",
-            link="https://exmaple.com/product.pdf",
-            notes="first note",
-        )
+        product = create_product(user=self.user)
 
         payload = {"user": new_user.id}
         url = product_detail_url(product.id)
@@ -151,14 +165,7 @@ class PrivateProductsApiTests(TestCase):
         """Test trying to delete another users product gives error."""
         new_user = create_user(email="user2@example.com", password="test123")
 
-        product = Product.objects.create(
-            user=new_user,
-            name="Pink Top",
-            price=10.99,
-            priority="LOW",
-            link="https://exmaple.com/product.pdf",
-            notes="first note",
-        )
+        product = create_product(user=new_user)
 
         url = product_detail_url(product.id)
         res = self.client.delete(url)
@@ -236,3 +243,43 @@ class PrivateProductsApiTests(TestCase):
     #     res = self.client.get(PRODUCTS_URL, {'assigned_only': 1})
 
     #     self.assertEqual(len(res.data), 1)
+
+
+class ImageUploadTests(TestCase):
+    """Tests for the image upload API."""
+
+    def setUp(self):
+        self.client = APIClient()
+        self.user = get_user_model().objects.create_user(
+            'user@example.com',
+            'password123',
+        )
+        self.client.force_authenticate(self.user)
+        # self.wishlist = create_wishlist(user=self.user)
+        self.product = create_product(user=self.user)
+
+    def tearDown(self):
+        self.product.image.delete()
+
+    def test_upload_image(self):
+        """Test uploading an image to a product."""
+        url = image_upload_url(self.product.id)
+        with tempfile.NamedTemporaryFile(suffix='.jpg') as image_file:
+            img = Image.new('RGB', (10, 10))
+            img.save(image_file, format='JPEG')
+            image_file.seek(0)
+            payload = {'image': image_file}
+            res = self.client.post(url, payload, format='multipart')
+
+        self.product.refresh_from_db()
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertIn('image', res.data)
+        self.assertTrue(os.path.exists(self.product.image.path))
+
+    def test_upload_image_bad_request(self):
+        """Test uploading an invalid image."""
+        url = image_upload_url(self.product.id)
+        payload = {'image': 'notanimage'}
+        res = self.client.post(url, payload, format='multipart')
+
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
