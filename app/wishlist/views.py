@@ -2,6 +2,13 @@
 Views for the wishlist APIs
 """
 
+from drf_spectacular.utils import (
+    extend_schema_view,
+    extend_schema,
+    OpenApiParameter,
+    OpenApiTypes,
+)
+
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework import viewsets, mixins, status
@@ -13,6 +20,17 @@ from core.models import Wishlist, Product
 from wishlist import serializers
 
 
+@extend_schema_view(
+    list=extend_schema(
+        parameters=[
+            OpenApiParameter(
+                'products',
+                OpenApiTypes.STR,
+                description='Comma separated list of products IDs to filter',
+            ),
+        ]
+    )
+)
 class WishlistViewSet(viewsets.ModelViewSet):
     """View for manage wishlist APIs."""
 
@@ -21,9 +39,23 @@ class WishlistViewSet(viewsets.ModelViewSet):
     authentication_classes = [TokenAuthentication]
     permission_classes = [IsAuthenticated]
 
+    def _params_to_ints(self, qs):
+        """Convert a list of strings to integers."""
+
+        # TO-Do raise error if user imputs something other than string
+        return [int(str_id) for str_id in qs.split(',')]
+
     def get_queryset(self):
         """Retrieve wishlists for authenticated user."""
-        return self.queryset.filter(user=self.request.user).order_by('-id')
+        products = self.request.query_params.get('products')
+        queryset = self.queryset
+        if products:
+            product_ids = self._params_to_ints(products)
+            queryset = queryset.filter(products__id__in=product_ids)
+
+        return (
+            queryset.filter(user=self.request.user).order_by('-id').distinct()
+        )
 
     def get_serializer_class(self):
         """Return the serializer class for request."""
@@ -36,6 +68,18 @@ class WishlistViewSet(viewsets.ModelViewSet):
         serializer.save(user=self.request.user)
 
 
+@extend_schema_view(
+    list=extend_schema(
+        parameters=[
+            OpenApiParameter(
+                'assigned_only',
+                OpenApiTypes.INT,
+                enum=[0, 1],
+                description='Filter by products assigned to wishlist.',
+            ),
+        ]
+    )
+)
 class ProductViewSet(
     mixins.DestroyModelMixin,
     mixins.UpdateModelMixin,
@@ -51,7 +95,18 @@ class ProductViewSet(
 
     def get_queryset(self):
         """Filter queryset to authenticated user."""
-        return self.queryset.filter(user=self.request.user).order_by('-name')
+        assigned_only = bool(
+            int(self.request.query_params.get('assigned_only', 0))
+        )
+        queryset = self.queryset
+        if assigned_only:
+            queryset = queryset.filter(wishlist__isnull=False)
+
+        return (
+            queryset.filter(user=self.request.user)
+            .order_by('-name')
+            .distinct()
+        )
 
     def get_serializer_class(self):
         if self.action == 'upload_image':

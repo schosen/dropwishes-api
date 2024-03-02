@@ -193,56 +193,56 @@ class PrivateProductsApiTests(TestCase):
         self.assertEqual(res.status_code, status.HTTP_404_NOT_FOUND)
         self.assertFalse(Product.objects.filter(name=payload["name"]).exists())
 
-    # def test_filter_products_assigned_to_wishlists(self):
-    #     """Test listing products to those assigned to wishlists."""
-    #     product1 = Product.objects.create(
-    #         user=self.user, name="Orange Top", price=10.99
-    #     )
-    #     product2 = Product.objects.create(
-    #         user=self.user, name="Blue Trousers", price=50.99
-    #     )
-    #     wishlist = Wishlist.objects.create(
-    #         title='Bday',
-    #         user=self.user,
-    #         description="Sample description",
-    #         occasion_date=datetime.date(year=2020, month=1, day=1),
-    #         address="123 Sample Street, Sampleland, 12QW 6ER",
-    #     )
-    #     wishlist.products.add(product1)
+    def test_filter_products_assigned_to_wishlists(self):
+        """Test listing products to those assigned to wishlists."""
+        product1 = Product.objects.create(
+            user=self.user, name="Orange Top", price=10.99
+        )
+        product2 = Product.objects.create(
+            user=self.user, name="Blue Trousers", price=50.99
+        )
+        wishlist = Wishlist.objects.create(
+            title='Bday',
+            user=self.user,
+            description="Sample description",
+            occasion_date=datetime.date(year=2020, month=1, day=1),
+            address="123 Sample Street, Sampleland, 12QW 6ER",
+        )
+        wishlist.products.add(product1)
 
-    #     res = self.client.get(PRODUCTS_URL, {'assigned_only': 1})
+        res = self.client.get(PRODUCTS_URL, {'assigned_only': 1})
 
-    #     s1 = ProductSerializer(product1)
-    #     s2 = ProductSerializer(product2)
-    #     self.assertIn(s1.data, res.data)
-    #     self.assertNotIn(s2.data, res.data)
+        s1 = ProductSerializer(product1)
+        s2 = ProductSerializer(product2)
+        self.assertIn(s1.data, res.data)
+        self.assertNotIn(s2.data, res.data)
 
-    # def test_filtered_products_unique(self):
-    #     """Test filtered products returns a unique list."""
-    #     product = Product.objects.create(
-    #         user=self.user, name="Blue Trousers", price=50.99
-    #     )
-    #     Product.objects.create(user=self.user, name="Orange Top", price=10.99)
-    #     wishlist1 = Wishlist.objects.create(
-    #         title='Graduation',
-    #         user=self.user,
-    #         description="Sample description",
-    #         occasion_date=datetime.date(year=2020, month=1, day=1),
-    #         address="123 Sample Street, Sampleland, 12QW 6ER",
-    #     )
-    #     wishlist2 = Wishlist.objects.create(
-    #         title='Wedding',
-    #         user=self.user,
-    #         description="The Big day",
-    #         occasion_date=datetime.date(year=2020, month=1, day=1),
-    #         address="456 Lala land, Sampleland, 890j0R",
-    #     )
-    #     wishlist1.products.add(product)
-    #     wishlist2.products.add(product)
+    def test_filtered_products_unique(self):
+        """Test filtered products returns a unique list."""
+        product = Product.objects.create(
+            user=self.user, name="Blue Trousers", price=50.99
+        )
+        Product.objects.create(user=self.user, name="Orange Top", price=10.99)
+        wishlist1 = Wishlist.objects.create(
+            title='Graduation',
+            user=self.user,
+            description="Sample description",
+            occasion_date=datetime.date(year=2020, month=1, day=1),
+            address="123 Sample Street, Sampleland, 12QW 6ER",
+        )
+        wishlist2 = Wishlist.objects.create(
+            title='Wedding',
+            user=self.user,
+            description="The Big day",
+            occasion_date=datetime.date(year=2020, month=1, day=1),
+            address="456 Lala land, Sampleland, 890j0R",
+        )
+        wishlist1.products.add(product)
+        wishlist2.products.add(product)
 
-    #     res = self.client.get(PRODUCTS_URL, {'assigned_only': 1})
+        res = self.client.get(PRODUCTS_URL, {'assigned_only': 1})
 
-    #     self.assertEqual(len(res.data), 1)
+        self.assertEqual(len(res.data), 1)
 
 
 class ImageUploadTests(TestCase):

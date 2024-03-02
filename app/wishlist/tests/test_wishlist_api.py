@@ -313,5 +313,28 @@ class PrivateWishlistApiTests(TestCase):
         self.assertEqual(res.status_code, status.HTTP_404_NOT_FOUND)
         self.assertTrue(Wishlist.objects.filter(id=wishlist.id).exists())
 
+    # "TO-DO: CREATE API FOR USER TO DELETE ALL WISHLISTS"
 
-# "TO-DO: CREATE API FOR USER TO DELETE ALL WISHLISTS"
+    def test_filter_by_products(self):
+        """Test filtering wishlists by products."""
+        wish1 = create_wishlist(user=self.user, title='Birthday')
+        wish2 = create_wishlist(user=self.user, title='Christmas')
+        prod1 = Product.objects.create(
+            user=self.user, name='PS5', price=399.00
+        )
+        prod2 = Product.objects.create(
+            user=self.user, name='trainers', price=120.00
+        )
+        wish1.products.add(prod1)
+        wish2.products.add(prod2)
+        wish3 = create_wishlist(user=self.user, title='Graduation')
+
+        params = {'products': f'{prod1.id},{prod2.id}'}
+        res = self.client.get(WISHLIST_URL, params)
+
+        s1 = WishlistSerializer(wish1)
+        s2 = WishlistSerializer(wish2)
+        s3 = WishlistSerializer(wish3)
+        self.assertIn(s1.data, res.data)
+        self.assertIn(s2.data, res.data)
+        self.assertNotIn(s3.data, res.data)
