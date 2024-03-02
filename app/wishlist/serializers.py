@@ -16,6 +16,16 @@ class ProductSerializer(serializers.ModelSerializer):
         read_only_fields = ["id"]
 
 
+class ProductImageSerializer(serializers.ModelSerializer):
+    """Serializer for uploading images to products."""
+
+    class Meta:
+        model = Product
+        fields = ['id', 'image']
+        read_only_fields = ['id']
+        extra_kwargs = {'image': {'required': 'True'}}
+
+
 class WishlistSerializer(serializers.ModelSerializer):
     """Serializer for wishlists."""
 
