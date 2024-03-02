@@ -4,6 +4,8 @@ name: Checks
 on:
   pull_request:
     branches: main
+    paths-ignore:
+      - 'README.md'
 
 jobs:
   test-lint:
