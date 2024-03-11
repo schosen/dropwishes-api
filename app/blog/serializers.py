@@ -24,9 +24,12 @@ class CommentSerializer(serializers.ModelSerializer):
         fields = ['id', 'body', 'owner', 'post', 'parent_comment', 'replies']
 
     def get_replies(self, obj):
-        # Recursively serialize replies
-        serializer = CommentSerializer(obj.replies, many=True)
-        return serializer.data
+        # Check if 'replies' is in the data
+        if hasattr(obj, 'replies'):
+            # Recursively serialize replies
+            serializer = CommentSerializer(obj.replies, many=True)
+            return serializer.data
+        return []
 
 
 class PostSerializer(serializers.ModelSerializer):

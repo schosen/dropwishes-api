@@ -51,16 +51,31 @@ class CommentListCreateView(generics.ListCreateAPIView):
     """View for managing comment List and Create APIs."""
 
     serializer_class = CommentSerializer
-    queryset = Comment.objects.filter(parent_comment=None)
+    queryset = Comment.objects.all()
     authentication_classes = [TokenAuthentication]
     permission_classes = [IsAuthenticatedOrReadOnly]
 
-    def perform_create(self, serializer):
-        """create a new comment"""
-        ## The below limits the amount of replies to parent comment
-        ## And stops replies to replies. To make replies limitless remove this block of code.
-        parent_comment_id = self.request.data.get('parent_comment')
+    def get_queryset(self):
+        # Only return top-level comments (parent_comment is None)
+        return Comment.objects.filter(parent_comment=None)
+
+    def create(self, request, *args, **kwargs):
+        """overide create method to provide custom validation"""
+
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        # Check if creating a parent comment or a reply
+        parent_comment_id = request.data.get('parent_comment')
         if parent_comment_id:
+            # Check if the parent comment is a reply. stop replies to replies.
+            parent_comment = Comment.objects.get(pk=parent_comment_id)
+            if parent_comment.parent_comment is not None:
+                return Response(
+                    {"error": "Replies to replies are not allowed."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
             # Check if the parent comment already has a reply
             if Comment.objects.filter(
                 parent_comment=parent_comment_id
@@ -70,13 +85,23 @@ class CommentListCreateView(generics.ListCreateAPIView):
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
-            # Check if the parent comment is a reply
-            parent_comment = Comment.objects.get(pk=parent_comment_id)
-            if parent_comment.parent_comment is not None:
+            # For replies, only allow admin users
+            if not IsAdminOrReadOnly().has_permission(request, self):
                 return Response(
-                    {"error": "Replies to replies are not allowed."},
-                    status=status.HTTP_400_BAD_REQUEST,
+                    {"error": "You do not have permission to create a reply."},
+                    status=status.HTTP_403_FORBIDDEN,
                 )
+            # For parent comments, allow authenticated users
+        self.perform_create(serializer)
+        headers = self.get_success_headers(serializer.data)
+        return Response(
+            serializer.data,
+            status=status.HTTP_201_CREATED,
+            headers=headers,
+        )
+
+    def perform_create(self, serializer):
+        """create a new comment"""
         serializer.save(owner=self.request.user)
 
 
