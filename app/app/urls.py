@@ -34,6 +34,7 @@ urlpatterns = [
     ),
     path('api/user/', include('user.urls')),
     path('api/wishlist/', include('wishlist.urls')),
+    path('api/blog/', include('blog.urls')),
 ]
 
 if settings.DEBUG:

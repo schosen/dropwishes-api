@@ -21,6 +21,14 @@ def product_image_file_path(instance, filename):
     return os.path.join('uploads', 'product', filename)
 
 
+def blog_image_file_path(instance, filename):
+    """Generate file path for new blog image."""
+    ext = os.path.splitext(filename)[1]
+    filename = f'{uuid.uuid4()}{ext}'
+
+    return os.path.join('uploads', 'blog', filename)
+
+
 class UserManager(BaseUserManager):
     """Manager for users."""
 
@@ -114,6 +122,65 @@ class Product(models.Model):
     link = models.URLField(max_length=255, blank=True, null=True)
     image = models.ImageField(null=True, upload_to=product_image_file_path)
     notes = models.TextField(blank=True)
+
+    def __str__(self):
+        return self.name
+
+
+class Post(models.Model):
+    """Posts object for blog."""
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    title = models.CharField(max_length=100, blank=True, default='')
+    body = models.TextField(blank=True, default='')
+    image = models.ImageField(null=True, upload_to=blog_image_file_path)
+    owner = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        related_name='posts',
+        on_delete=models.CASCADE,
+    )
+    tags = models.ManyToManyField('Tag')
+
+    class Meta:
+        ordering = ("-created_at",)
+
+
+class Comment(models.Model):
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    body = models.TextField(blank=False)
+    owner = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        related_name='comments',
+        on_delete=models.CASCADE,
+    )
+    post = models.ForeignKey(
+        'Post', related_name='comments', on_delete=models.CASCADE
+    )
+    parent_comment = models.ForeignKey(
+        'self',
+        null=True,
+        blank=True,
+        on_delete=models.CASCADE,
+        related_name='replies',
+    )
+
+    class Meta:
+        ordering = ("-created_at",)
+
+    def __str__(self):
+        return f"{self.owner.first_name}'s comment: {self.body}"
+
+
+class Tag(models.Model):
+    """Tag for filtering blog posts."""
+
+    name = models.CharField(max_length=255)
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+    )
 
     def __str__(self):
         return self.name

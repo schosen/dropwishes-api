@@ -46,6 +46,7 @@ INSTALLED_APPS = [
     "core",
     'user',
     "wishlist",
+    'blog',
 ]
 
 MIDDLEWARE = [
