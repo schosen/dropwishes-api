@@ -255,7 +255,6 @@ class ImageUploadTests(TestCase):
             'password123',
         )
         self.client.force_authenticate(self.user)
-        # self.wishlist = create_wishlist(user=self.user)
         self.product = create_product(user=self.user)
 
     def tearDown(self):

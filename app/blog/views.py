@@ -111,9 +111,7 @@ class CommentDetailView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = CommentSerializer
     queryset = Comment.objects.all()
     authentication_classes = [TokenAuthentication]
-    permission_classes = [
-        IsOwnerOrReadOnly,
-    ]
+    permission_classes = [IsAdminOrReadOnly, IsOwnerOrReadOnly]
 
 
 class TagListView(generics.ListAPIView):
