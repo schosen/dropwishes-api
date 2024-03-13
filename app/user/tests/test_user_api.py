@@ -42,8 +42,12 @@ class PublicUserApiTests(TestCase):
         self.assertTrue(user.check_password(payload['password']))
         self.assertNotIn('password', res.data)
 
+    # TO-DO: add new tests
     # def test_create_user_with_mismatch_password_fails(self):
+    #     """test creating user with mismatch password confirmation fails"""
+
     # def test_create_user_with_mismatch_email_fails(self):
+    #     """Test creating user with mismatch email fails"""
 
     def test_create_user_without_name_failure(self):
         """Test creating a user is fails when you don't add name."""
@@ -184,6 +188,9 @@ class PrivateUserApiTests(TestCase):
         self.assertTrue(self.user.last_name, (payload['last_name']))
         self.assertEqual(res.status_code, status.HTTP_200_OK)
 
+    # TO-DO: add new tests
+    # def test_update_password(self):
+    #     """Test update password"""
 
-# def test_update_password(self):
-# def test_update_email(self):
+    # def test_update_email(self):
+    #     """Test update email"""
