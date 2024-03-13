@@ -109,6 +109,7 @@ class ProductViewSet(
         )
 
     def get_serializer_class(self):
+        """upload image for authenticated user."""
         if self.action == 'upload_image':
             return serializers.ProductImageSerializer
 
