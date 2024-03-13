@@ -4,7 +4,6 @@ URL mappings for the blog API.
 
 from django.urls import path
 from blog import views
-from rest_framework.urlpatterns import format_suffix_patterns
 
 app_name = 'blog'
 
@@ -30,5 +29,3 @@ urlpatterns = [
         name='tag-detail',
     ),
 ]
-
-# urlpatterns = format_suffix_patterns(urlpatterns)

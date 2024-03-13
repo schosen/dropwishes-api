@@ -8,15 +8,12 @@ from blog.serializers import (
     PostSerializer,
     CommentSerializer,
     TagSerializer,
-    PostImageSerializer,
 )
 from rest_framework.permissions import (
-    DjangoModelPermissionsOrAnonReadOnly,
     IsAuthenticatedOrReadOnly,
 )
 from rest_framework.authentication import TokenAuthentication
 from user.permissions import IsOwnerOrReadOnly, IsAdminOrReadOnly
-from rest_framework.decorators import action
 from rest_framework.response import Response
 
 

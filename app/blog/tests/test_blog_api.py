@@ -2,9 +2,6 @@
 Tests for the blog API.
 """
 
-import datetime
-
-from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse
 
@@ -16,9 +13,7 @@ from core.models import Post, Comment, Tag, User
 
 from blog.serializers import (
     CommentSerializer,
-    PostImageSerializer,
     PostSerializer,
-    TagSerializer,
 )
 
 POST_URL = reverse("blog:post-list")
@@ -133,7 +128,10 @@ class PublicWishlistAPITests(TestCase):
         )
 
     def test_comment_authentication_required(self):
-        """Test auth is required for Create and edit requests to Comment API."""
+        """
+        Test auth is required for Create and edit
+        requests to Comment API.
+        """
         unauth_post = self.client.post(
             COMMENT_URL,
             {"body": "This is a dummy comment", "post": 1},
@@ -183,7 +181,10 @@ class PrivateWishlistApiTests(TestCase):
         self.blog_post = create_blog_post(self.admin_user)
 
     def test_only_admin_can_create_posts(self):
-        """test only admin can create posts. standard authenticated users cannot"""
+        """
+        test only admin can create posts.
+        standard authenticated users cannot
+        """
         payload = {
             "title": "admin post",
             "body": "this is an admin post",
@@ -207,7 +208,10 @@ class PrivateWishlistApiTests(TestCase):
         self.assertTrue(Post.objects.filter(id=self.blog_post.id).exists())
 
     def test_only_admin_can_reply_to_comment(self):
-        """test only admin can reply to comment. standard authenticated users cannot"""
+        """
+        test only admin can reply to comment.
+        standard authenticated users cannot
+        """
         comment = create_comment(self.regular_user, self.blog_post)
         payload = {
             "body": "This is a reply to a comment, only admins can do this",
@@ -224,7 +228,10 @@ class PrivateWishlistApiTests(TestCase):
         self.assertEqual(admin_res.data['body'], payload["body"])
 
     def test_only_admin_can_update_tag(self):
-        """test only admin can update a tag. standard authenticated users cannot"""
+        """
+        test only admin can update a tag.
+        standard authenticated users cannot
+        """
         tag = Tag.objects.create(user=self.admin_user, name="Birthday")
 
         payload = {"name": "30th Birthday"}
@@ -238,7 +245,10 @@ class PrivateWishlistApiTests(TestCase):
         self.assertEqual(admin_res.data['name'], payload["name"])
 
     def test_only_admin_can_delete_tag(self):
-        """test only admin can delete a tag. standard authenticated users cannot"""
+        """
+        test only admin can delete a tag.
+        standard authenticated users cannot
+        """
         tag = Tag.objects.create(user=self.admin_user, name="Birthday")
         self.client.force_authenticate(self.regular_user)
 
