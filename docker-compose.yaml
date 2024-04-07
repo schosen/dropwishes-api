@@ -20,6 +20,10 @@ services:
       - DB_NAME=devdb
       - DB_USER=devuser
       - DB_PASS=changeme
+      - EMAIL_HOST_USER=${EMAIL_HOST_USER}
+      - EMAIL_HOST_PASSWORD=${EMAIL_HOST_PASSWORD}
+      - EMAIL_HOST=${EMAIL_HOST}
+      - DEFAULT_FROM_EMAIL=${EMAIL_HOST_USER}
     depends_on:
       - db
 

@@ -57,12 +57,12 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     MALE = "M"
     FEMALE = "F"
-    NONBINARY = "N"
+    PREFER_NOT_TO_SAY = "N"
 
     GENDER_CHOICES = [
         (MALE, "Male"),
         (FEMALE, "Female"),
-        (NONBINARY, "Non Binary"),
+        (PREFER_NOT_TO_SAY, "Prefer Not To Say"),
     ]
 
     email = models.EmailField(max_length=255, unique=True)
@@ -75,6 +75,9 @@ class User(AbstractBaseUser, PermissionsMixin):
     birthday = models.DateField(null=True, blank=True)
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
+    is_verified = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     objects = UserManager()
 
@@ -93,6 +96,8 @@ class Wishlist(models.Model):
     occasion_date = models.DateField(blank=True)
     address = models.CharField(max_length=255, blank=True)
     products = models.ManyToManyField("Product")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
         return self.title
@@ -122,6 +127,8 @@ class Product(models.Model):
     link = models.URLField(max_length=255, blank=True, null=True)
     image = models.ImageField(null=True, upload_to=product_image_file_path)
     notes = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
         return self.name
@@ -181,6 +188,8 @@ class Tag(models.Model):
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
     )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
         return self.name
