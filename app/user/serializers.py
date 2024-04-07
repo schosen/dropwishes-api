@@ -216,3 +216,33 @@ class ChangeEmailSerializer(serializers.Serializer):
         user.email = email
         user.save()
         return user
+
+
+class PasswordResetRequestSerializer(serializers.Serializer):
+    """Serializer for password reset request"""
+
+    email = serializers.EmailField()
+
+
+class PasswordResetConfirmSerializer(serializers.Serializer):
+    """Serializer to reset password"""
+
+    # token = serializers.CharField()
+    password = serializers.CharField()
+    confirm_password = serializers.CharField()
+
+    def validate(self, data):
+        """Create and return a user with encrypted password."""
+        if data['password'] != data['confirm_password']:
+            raise serializers.ValidationError(
+                {
+                    'confirm_password': _(
+                        "The two password fields didn't match."
+                    )
+                }
+            )
+        password_validation.validate_password(
+            data['password'], self.context['request'].user
+        )
+
+        return data

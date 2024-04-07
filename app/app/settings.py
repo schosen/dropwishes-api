@@ -11,11 +11,15 @@ https://docs.djangoproject.com/en/3.2/ref/settings/
 """
 
 from pathlib import Path
+import environ
 import os
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+env = environ.Env()
+# Take environment variables from .env file
+environ.Env.read_env(os.path.join(BASE_DIR, '.env'))
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/3.2/howto/deployment/checklist/
@@ -43,6 +47,8 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework.authtoken',
     'drf_spectacular',
+    'drfpasswordless',
+    # 'corsheaders',
     "core",
     'user',
     "wishlist",
@@ -50,6 +56,7 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    # 'corsheaders.middleware.CorsMiddleware',
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -112,6 +119,20 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
+# Passwordless authentication
+PASSWORDLESS_AUTH = {
+    'PASSWORDLESS_AUTH_TYPES': ['EMAIL'],
+    'PASSWORDLESS_EMAIL_NOREPLY_ADDRESS': env('EMAIL_HOST_USER'),
+    # URL Prefix for Authentication Endpoints
+    'PASSWORDLESS_AUTH_PREFIX': 'pwless-auth/',
+    #  URL Prefix for Verification Endpoints
+    'PASSWORDLESS_VERIFY_PREFIX': 'pwless-auth/verify/',
+    # Marks itself as verified the first time a user completes auth via token.
+    # Automatically unmarks itself if email is changed.
+    'PASSWORDLESS_USER_MARK_EMAIL_VERIFIED': True,
+    'PASSWORDLESS_USER_EMAIL_VERIFIED_FIELD_NAME': 'is_verified',
+    # 'PASSWORDLESS_EMAIL_TOKEN_HTML_TEMPLATE_NAME': "mytemplate.html",
+}
 
 # Internationalization
 # https://docs.djangoproject.com/en/3.2/topics/i18n/
@@ -150,3 +171,17 @@ REST_FRAMEWORK = {
 SPECTACULAR_SETTINGS = {
     'COMPONENT_SPLIT_REQUEST': True,
 }
+
+# CORS_ALLOWED_ORIGINS = ['http://localhost:3000', 'http://127.0.0.1:3000']
+
+# CORS_ORIGIN_ALLOW_ALL = False
+# CORS_ALLOW_CREDENTIALS = True
+
+# Email settings
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = env('EMAIL_HOST')  # Specify your SMTP server here
+EMAIL_PORT = 587  # Specify the port for your SMTP server
+EMAIL_USE_TLS = True  # TLS (Transport Layer Security) is usually recommended
+EMAIL_HOST_USER = env('EMAIL_HOST_USER')  # Your email address
+EMAIL_HOST_PASSWORD = env('EMAIL_HOST_PASSWORD')  # Your email password
+DEFAULT_FROM_EMAIL = env('EMAIL_HOST_USER')  # Default sender email address
