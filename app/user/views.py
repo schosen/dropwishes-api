@@ -15,7 +15,6 @@ from django.core.mail import send_mail
 from django.urls import reverse
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.utils.encoding import force_bytes, force_text
-from django.core.exceptions import ValidationError
 
 # from core.utils import EmailUtil
 from user.serializers import (
@@ -47,7 +46,7 @@ class CreateUserView(generics.CreateAPIView):
         # Send verification email
         current_site = get_current_site(request)
         mail_subject = 'Activate your account'
-        message = f'Click the link to verify your email: {scheme}://{current_site}{reverse("user:activate", kwargs={"uidb64": urlsafe_base64_encode(force_bytes(user.pk)), "token": token})}'
+        message = f'Click the link to verify your email: {scheme}://{current_site}{reverse("user:activate", kwargs={"uidb64": urlsafe_base64_encode(force_bytes(user.pk)), "token": token})}'  # noqa: E501
         send_mail(
             mail_subject, message, from_email='', recipient_list=[user.email]
         )
@@ -86,7 +85,7 @@ class UserVerificationAPIView(generics.GenericAPIView):
                 user.is_verified = True
                 user.save()
                 # TO-DO Invalidate the token
-                # You can delete the token from the database or mark it as used, depending on your implementation
+                # You can delete the token from the database or mark it as used, depending on your implementation # noqa: E501
                 return Response(
                     {'message': 'Your account has been verified'},
                     status=status.HTTP_200_OK,
@@ -117,7 +116,7 @@ class ResendVerificationLinkAPIView(generics.GenericAPIView):
             # Resend verification email
             current_site = get_current_site(request)
             mail_subject = 'Verify your account'
-            message = f'Click the link to verify your email: http://{current_site}{reverse("user:activate", kwargs={"uidb64": urlsafe_base64_encode(force_bytes(request.user.pk)), "token": token})}'
+            message = f'Click the link to verify your email: http://{current_site}{reverse("user:activate", kwargs={"uidb64": urlsafe_base64_encode(force_bytes(request.user.pk)), "token": token})}'  # noqa: E501
             send_mail(
                 mail_subject,
                 message,
@@ -217,11 +216,11 @@ class PasswordResetRequestAPIView(generics.CreateAPIView):
             #     f'/api/user/reset-password/confirm/{uid}/{token}/'
             # )
 
-            reset_password_link = f'{scheme}://{current_site}{reverse("user:password_reset_confirm",kwargs={"uidb64": uid, "token": token})}'
+            reset_password_link = f'{scheme}://{current_site}{reverse("user:password_reset_confirm",kwargs={"uidb64": uid, "token": token})}'  # noqa: E501
 
             # Send email with password reset link
             subject = 'Password Reset'
-            message = f'Follow this link to reset your password: {reset_password_link}'
+            message = f'Follow this link to reset your password: {reset_password_link}'  # noqa: E501
             # TO-DO make token expire after some time
             # Logic to send email
             send_mail(subject, message, None, [email])
@@ -230,7 +229,7 @@ class PasswordResetRequestAPIView(generics.CreateAPIView):
                 status=status.HTTP_200_OK,
             )
         except get_user_model().DoesNotExist:
-            pass  # Handle case where email doesn't exist without leaking information
+            pass  # Handle case where email doesn't exist without leaking information # noqa: E501
         return Response(
             {'error': 'User with this email does not exist'},
             status=status.HTTP_400_BAD_REQUEST,
@@ -277,7 +276,8 @@ class PasswordResetConfirmAPIView(generics.CreateAPIView):
                 # if password == confirm_password:
                 user.set_password(password)
                 user.save()
-                # TO-DO invalidate token. Example: TokenModel.objects.filter(user=user).delete()
+                # TO-DO invalidate token.
+                # Example: TokenModel.objects.filter(user=user).delete()
                 return Response(
                     {'message': 'Password reset successful'},
                     status=status.HTTP_200_OK,
