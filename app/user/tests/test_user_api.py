@@ -16,6 +16,7 @@ ME_URL = reverse('user:me')
 CHANGE_PASSWORD_URL = reverse('user:change-password')
 CHANGE_EMAIL_URL = reverse('user:change-email')
 DELETE_USER_URL = reverse('user:delete-user')
+LOGOUT_URL = reverse('user:logout')
 
 
 def create_user(**params):
@@ -246,14 +247,18 @@ class PrivateUserApiTests(TestCase):
     # def test_request_reset_password(self):
         # """Test request reset password sends link with token and successfully submits requests"""
     
-    #  def test_logout_user(self):
-        # """Test log out user"""
+    def test_logout_user(self):
+        """Test log out user"""
+        res = self.client.post(LOGOUT_URL)
+        logged_out_user = self.client.get(ME_URL)
+        self.assertEqual(res.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertEqual(logged_out_user.status_code, status.HTTP_401_UNAUTHORIZED)
 
     def test_delete_user_soft_delete(self):
         """Test delete user soft deletes the user"""
         res = self.client.delete(DELETE_USER_URL)
         self.assertEqual(res.status_code, status.HTTP_204_NO_CONTENT)
-        user_exists = (
-            get_user_model().objects.filter(self.user.email).exists()
+        deleted_user = (
+            get_user_model().objects.filter(self.user.email)
         )
-        self.assertFalse(user_exists)
+        self.assertFalse(deleted_user.is_active)
