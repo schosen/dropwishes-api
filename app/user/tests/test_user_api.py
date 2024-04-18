@@ -13,6 +13,9 @@ from rest_framework import status
 CREATE_USER_URL = reverse('user:create')
 TOKEN_URL = reverse('user:token')
 ME_URL = reverse('user:me')
+CHANGE_PASSWORD_URL = reverse('user:change-password')
+CHANGE_EMAIL_URL = reverse('user:change-email')
+DELETE_USER_URL = reverse('user:delete-user')
 
 
 def create_user(**params):
@@ -42,17 +45,38 @@ class PublicUserApiTests(TestCase):
         self.assertTrue(user.check_password(payload['password']))
         self.assertNotIn('password', res.data)
 
-    # TO-DO: add new tests
-    # def test_create_user_with_mismatch_password_fails(self):
-    #     """test creating user with mismatch password confirmation fails"""
-
-    # def test_create_user_with_mismatch_email_fails(self):
-    #     """Test creating user with mismatch email fails"""
-
-    def test_create_user_without_name_failure(self):
-        """Test creating a user is fails when you don't add name."""
+    def test_create_user_with_mismatch_password_fails(self):
+        """test creating user with mismatch password confirmation fails"""
         payload = {
             'email': 'test@example.com',
+            'confirm_email': 'test@example.com',
+            'first_name': 'John',
+            'password': 'testpass123',
+            'confirm_password': 'different-password',
+        }
+        res = self.client.post(CREATE_USER_URL, payload)
+
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_create_user_with_mismatch_email_fails(self):
+        """Test creating user with mismatch email fails"""
+        payload = {
+            'email': 'test@example.com',
+            'confirm_email': 'different-email@example.com',
+            'first_name': 'John',
+            'password': 'testpass123',
+            'confirm_password': 'testpass123',
+        }
+        res = self.client.post(CREATE_USER_URL, payload)
+
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
+
+
+    def test_create_user_without_name_failure(self):
+        """Test creating a user fails when you don't add name."""
+        payload = {
+            'email': 'test@example.com',
+            'confirm_email': 'test@example.com',
             'password': 'testpass123',
         }
         res = self.client.post(CREATE_USER_URL, payload)
@@ -63,8 +87,10 @@ class PublicUserApiTests(TestCase):
         """Test error returned if user with email exists."""
         payload = {
             'email': 'test@example.com',
-            'password': 'testpass123',
+            'confirm_email': 'test@example.com',
             'first_name': 'John',
+            'password': 'testpass123',
+            'confirm_password': 'testpass123',
         }
         create_user(**payload)
         res = self.client.post(CREATE_USER_URL, payload)
@@ -189,8 +215,45 @@ class PrivateUserApiTests(TestCase):
         self.assertEqual(res.status_code, status.HTTP_200_OK)
 
     # TO-DO: add new tests
-    # def test_update_password(self):
-    #     """Test update password"""
+    def test_update_password(self):
+        """Test update password for authenticated user"""
+        payload = {
+            'password': 'Updated password',
+            'confirm_password': 'Updated password',
+        }
 
-    # def test_update_email(self):
-    #     """Test update email"""
+        res = self.client.patch(CHANGE_PASSWORD_URL, payload)
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.password, payload['password'])
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+
+
+    def test_update_email(self):
+        """Test update email for authenticated user"""
+        payload = {
+            'email': 'Updated password',
+            'confirm_email': 'Updated password',
+        }
+
+        res = self.client.patch(CHANGE_EMAIL_URL, payload)
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.email, payload['email'])
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+
+    # def test_update_email_sends_new_verification_link(self):
+        # """Test changing email sends new verification link"""
+
+    # def test_request_reset_password(self):
+        # """Test request reset password sends link with token and successfully submits requests"""
+    
+    #  def test_logout_user(self):
+        # """Test log out user"""
+
+    def test_delete_user_soft_delete(self):
+        """Test delete user soft deletes the user"""
+        res = self.client.delete(DELETE_USER_URL)
+        self.assertEqual(res.status_code, status.HTTP_204_NO_CONTENT)
+        user_exists = (
+            get_user_model().objects.filter(self.user.email).exists()
+        )
+        self.assertFalse(user_exists)
