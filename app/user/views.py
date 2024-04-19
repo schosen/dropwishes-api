@@ -16,7 +16,7 @@ from django.urls import reverse
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.utils.encoding import force_bytes, force_text
 
-# from core.utils import EmailUtil
+from core.utils import EmailUtil
 from user.serializers import (
     UserSerializer,
     AuthTokenSerializer,
@@ -25,6 +25,21 @@ from user.serializers import (
     PasswordResetRequestSerializer,
     PasswordResetConfirmSerializer,
 )
+
+
+def verification_email_data(request):
+    """returns the subject, body and to email for user verification"""
+    scheme = request.scheme
+    token = default_token_generator.make_token(request.user)
+    current_site = get_current_site(request)
+    mail_subject = 'Verify your account'
+    message = f'Click the link to verify your email: {scheme}://{current_site}{reverse("user:activate", kwargs={"uidb64": urlsafe_base64_encode(force_bytes(request.user.pk)), "token": token})}'  # noqa: E501
+    data = {
+        'email_body': message,
+        'to_email': request.user.email,
+        'email_subject': mail_subject,
+    }
+    return data
 
 
 class CreateUserView(generics.CreateAPIView):
@@ -36,7 +51,6 @@ class CreateUserView(generics.CreateAPIView):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         user = serializer.save()
-        # user.is_active = False  # User is inactive until email confirmation
         user.is_verified = False
         user.save()
 
@@ -50,9 +64,17 @@ class CreateUserView(generics.CreateAPIView):
         send_mail(
             mail_subject, message, from_email='', recipient_list=[user.email]
         )
+        # data = verification_email_data(request)
+        # EmailUtil.send_email(data=data)
+
+        # Create authentication token
+        token, _ = Token.objects.get_or_create(user=user)
 
         return Response(
-            {'message': 'Please check your email for verification'},
+            {
+                'token': token.key,
+                'message': 'Please check your email for verification',
+            },
             status=status.HTTP_201_CREATED,
         )
 
@@ -110,19 +132,8 @@ class ResendVerificationLinkAPIView(generics.GenericAPIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
         else:
-            # Generate token for email verification
-            token = default_token_generator.make_token(request.user)
-
-            # Resend verification email
-            current_site = get_current_site(request)
-            mail_subject = 'Verify your account'
-            message = f'Click the link to verify your email: http://{current_site}{reverse("user:activate", kwargs={"uidb64": urlsafe_base64_encode(force_bytes(request.user.pk)), "token": token})}'  # noqa: E501
-            send_mail(
-                mail_subject,
-                message,
-                from_email='',
-                recipient_list=[request.user.email],
-            )
+            data = verification_email_data(request)
+            EmailUtil.send_email(data=data)
             return Response(
                 {'message': 'Verification link resent successfully'},
                 status=status.HTTP_200_OK,
@@ -191,6 +202,9 @@ class ChangeEmailView(generics.UpdateAPIView):
         )
         serializer.is_valid(raise_exception=True)
         self.perform_update(serializer)
+
+        data = verification_email_data(request)
+        EmailUtil.send_email(data=data)
         return Response(
             {'detail': 'Email updated successfully.'},
             status=status.HTTP_200_OK,
@@ -198,6 +212,8 @@ class ChangeEmailView(generics.UpdateAPIView):
 
 
 class PasswordResetRequestAPIView(generics.CreateAPIView):
+    """Reset password for user"""
+
     serializer_class = PasswordResetRequestSerializer
 
     def create(self, request, *args, **kwargs):
@@ -212,9 +228,6 @@ class PasswordResetRequestAPIView(generics.CreateAPIView):
             token = default_token_generator.make_token(user)
             # Construct reset password link
             current_site = get_current_site(request)
-            # reset_password_link = request.build_absolute_uri(
-            #     f'/api/user/reset-password/confirm/{uid}/{token}/'
-            # )
 
             reset_password_link = f'{scheme}://{current_site}{reverse("user:password_reset_confirm",kwargs={"uidb64": uid, "token": token})}'  # noqa: E501
 
@@ -237,6 +250,8 @@ class PasswordResetRequestAPIView(generics.CreateAPIView):
 
 
 class PasswordResetConfirmAPIView(generics.CreateAPIView):
+    """validate token and new password"""
+
     serializer_class = PasswordResetConfirmSerializer
 
     def get(self, request, uidb64, token):
@@ -263,17 +278,16 @@ class PasswordResetConfirmAPIView(generics.CreateAPIView):
                 {'message': 'Invalid token'},
                 status=status.HTTP_400_BAD_REQUEST,
             )
+        # TO-DO: Dont show post form if token is invalid/ returns 400 Bad Request
 
     def post(self, request, uidb64, token):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         password = serializer.validated_data['password']
-        # confirm_password = serializer.validated_data['confirm_password']
         try:
             uid = force_text(urlsafe_base64_decode(uidb64))
             user = get_user_model().objects.get(pk=uid)
             if default_token_generator.check_token(user, token):
-                # if password == confirm_password:
                 user.set_password(password)
                 user.save()
                 # TO-DO invalidate token.
@@ -282,8 +296,6 @@ class PasswordResetConfirmAPIView(generics.CreateAPIView):
                     {'message': 'Password reset successful'},
                     status=status.HTTP_200_OK,
                 )
-                # else:
-                #     raise ValidationError('Passwords do not match')
             else:
                 return Response(
                     {'error': 'Invalid link'},
