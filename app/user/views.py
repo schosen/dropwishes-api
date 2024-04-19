@@ -278,7 +278,7 @@ class PasswordResetConfirmAPIView(generics.CreateAPIView):
                 {'message': 'Invalid token'},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        # TO-DO: Dont show post form if token is invalid/ returns 400 Bad Request
+        # TO-DO: Dont show post form if token is invalid/returns 400 code
 
     def post(self, request, uidb64, token):
         serializer = self.get_serializer(data=request.data)
