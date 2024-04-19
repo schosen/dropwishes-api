@@ -124,9 +124,9 @@ PASSWORDLESS_AUTH = {
     'PASSWORDLESS_AUTH_TYPES': ['EMAIL'],
     'PASSWORDLESS_EMAIL_NOREPLY_ADDRESS': env('EMAIL_HOST_USER'),
     # URL Prefix for Authentication Endpoints
-    'PASSWORDLESS_AUTH_PREFIX': 'pwless-auth/',
+    'PASSWORDLESS_AUTH_PREFIX': 'otp-auth/',
     #  URL Prefix for Verification Endpoints
-    'PASSWORDLESS_VERIFY_PREFIX': 'pwless-auth/verify/',
+    'PASSWORDLESS_VERIFY_PREFIX': 'otp-auth/verify/',
     # Marks itself as verified the first time a user completes auth via token.
     # Automatically unmarks itself if email is changed.
     'PASSWORDLESS_USER_MARK_EMAIL_VERIFIED': True,
