@@ -5,9 +5,10 @@ Tests for the user API.
 from django.test import TestCase
 from django.contrib.auth import get_user_model
 from django.urls import reverse
-
+from rest_framework.authtoken.models import Token
 from rest_framework.test import APIClient
 from rest_framework import status
+from core.models import User
 
 
 CREATE_USER_URL = reverse('user:create')
@@ -72,7 +73,6 @@ class PublicUserApiTests(TestCase):
 
         self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
 
-
     def test_create_user_without_name_failure(self):
         """Test creating a user fails when you don't add name."""
         payload = {
@@ -88,10 +88,8 @@ class PublicUserApiTests(TestCase):
         """Test error returned if user with email exists."""
         payload = {
             'email': 'test@example.com',
-            'confirm_email': 'test@example.com',
             'first_name': 'John',
             'password': 'testpass123',
-            'confirm_password': 'testpass123',
         }
         create_user(**payload)
         res = self.client.post(CREATE_USER_URL, payload)
@@ -215,50 +213,57 @@ class PrivateUserApiTests(TestCase):
         self.assertTrue(self.user.last_name, (payload['last_name']))
         self.assertEqual(res.status_code, status.HTTP_200_OK)
 
-    # TO-DO: add new tests
     def test_update_password(self):
         """Test update password for authenticated user"""
         payload = {
-            'password': 'Updated password',
-            'confirm_password': 'Updated password',
+            "old_password": "testpass123",
+            "new_password1": "updated-password",
+            "new_password2": "updated-password",
         }
 
-        res = self.client.patch(CHANGE_PASSWORD_URL, payload)
-        self.user.refresh_from_db()
-        self.assertEqual(self.user.password, payload['password'])
-        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        res = self.client.patch(CHANGE_PASSWORD_URL, payload, format='json')
 
+        updated_user = User.objects.get(email='test@example.com')
+        self.assertTrue(updated_user.check_password(payload['new_password1']))
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
 
     def test_update_email(self):
         """Test update email for authenticated user"""
         payload = {
-            'email': 'Updated password',
-            'confirm_email': 'Updated password',
+            'new_email': 'updated@example.com',
+            'confirm_email': 'updated@example.com',
+            'password': 'testpass123',
         }
 
-        res = self.client.patch(CHANGE_EMAIL_URL, payload)
-        self.user.refresh_from_db()
-        self.assertEqual(self.user.email, payload['email'])
+        res = self.client.put(CHANGE_EMAIL_URL, payload, format='json')
+        updated_user = User.objects.get(first_name=self.user.first_name)
         self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertEqual(updated_user.email, payload['new_email'])
 
+    # TO-DO: add new tests
     # def test_update_email_sends_new_verification_link(self):
-        # """Test changing email sends new verification link"""
+    # """Test changing email sends new verification link"""
 
     # def test_request_reset_password(self):
-        # """Test request reset password sends link with token and successfully submits requests"""
-    
+    # """Test request reset password sends link with token and successfully submits requests"""
+
     def test_logout_user(self):
         """Test log out user"""
+        token = Token.objects.create(user=self.user)
+        self.client.credentials(HTTP_AUTHORIZATION='Token ' + token.key)
         res = self.client.post(LOGOUT_URL)
-        logged_out_user = self.client.get(ME_URL)
+
         self.assertEqual(res.status_code, status.HTTP_204_NO_CONTENT)
-        self.assertEqual(logged_out_user.status_code, status.HTTP_401_UNAUTHORIZED)
+        with self.assertRaises(Token.DoesNotExist):
+            Token.objects.get(key=token.key)
+        # response_after_logout = self.client.get(ME_URL)
+        # self.assertEqual(
+        #     response_after_logout.status_code, status.HTTP_401_UNAUTHORIZED
+        # )
 
     def test_delete_user_soft_delete(self):
         """Test delete user soft deletes the user"""
         res = self.client.delete(DELETE_USER_URL)
         self.assertEqual(res.status_code, status.HTTP_204_NO_CONTENT)
-        deleted_user = (
-            get_user_model().objects.filter(self.user.email)
-        )
+        deleted_user = User.objects.get(email='test@example.com')
         self.assertFalse(deleted_user.is_active)
