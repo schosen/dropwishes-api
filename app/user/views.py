@@ -11,10 +11,13 @@ from rest_framework.authtoken.models import Token
 from django.contrib.auth import update_session_auth_hash, get_user_model
 from django.contrib.auth.tokens import default_token_generator
 from django.contrib.sites.shortcuts import get_current_site
+from django.conf import settings
 from django.core.mail import send_mail
 from django.urls import reverse
-from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
+from django.utils.http import urlsafe_base64_encode
 from django.utils.encoding import force_bytes, force_text
+
+# from django.middleware.csrf import get_token
 
 from core.utils import EmailUtil
 from user.serializers import (
@@ -141,10 +144,42 @@ class ResendVerificationLinkAPIView(generics.GenericAPIView):
 
 
 class CreateTokenView(ObtainAuthToken):
-    """Create a new auth token for user."""
+    """
+    Create a new auth token for user.
+    Override default ObtainAuthToken view from rest_framework to set the token into a
+    HttpOnly cookie.
+    The 'secure' option will depend on the settings.DEBUG value.
+    """
 
     serializer_class = AuthTokenSerializer
     renderer_classes = api_settings.DEFAULT_RENDERER_CLASSES
+
+    def post(self, request, *args, **kwargs):
+        response = super().post(request, *args, **kwargs)
+        token = Token.objects.get(key=response.data['token'])
+        # csrf_token = get_token(request)
+
+        # Create the response with token data
+        # response_data = {'token': token.key, 'csrfToken': csrf_token}
+        response_data = {'token': token.key}
+        response = Response(response_data)
+
+        # Set the token in an HTTP-only cookie
+        response.set_cookie(
+            key='auth_token',
+            value=token.key,
+            httponly=True,
+            secure=(not settings.DEBUG),  # Use True in production
+            samesite='Strict',
+        )
+        # response.set_cookie(
+        #     key='csrftoken',
+        #     value=csrf_token,
+        #     httponly=False,  # CSRF token needs to be accessible by JavaScript
+        #     secure=(not settings.DEBUG),  # Use True in production
+        #     samesite='Strict',
+        # )
+        return response
 
 
 class ManageUserView(generics.RetrieveUpdateAPIView):
@@ -346,4 +381,19 @@ class LogoutView(APIView):
         """Remove auth token and return response"""
         # delete the token to force a login
         request.user.auth_token.delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
+        response = Response(status=status.HTTP_204_NO_CONTENT)
+        response.delete_cookie('auth_token')
+        response.delete_cookie('csrftoken')
+        return response
+
+
+class ValidateTokenView(APIView):
+    """Validate the Auth token"""
+
+    authentication_classes = [authentication.TokenAuthentication]
+
+    def get(self, request):
+        if request.user.is_authenticated:
+            return Response({"isAuthenticated": True})
+        else:
+            return Response({"isAuthenticated": False}, status=401)

@@ -50,4 +50,9 @@ urlpatterns = [
         name='delete-user',
     ),
     path('token/logout/', views.LogoutView.as_view(), name='logout'),
+    path(
+        'validate-token/',
+        views.ValidateTokenView.as_view(),
+        name='validate-token',
+    ),
 ]
