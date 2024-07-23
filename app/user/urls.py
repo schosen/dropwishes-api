@@ -14,14 +14,14 @@ urlpatterns = [
     path('create/', views.CreateUserView.as_view(), name='create'),
     path('token/', views.CreateTokenView.as_view(), name='token'),
     path(
-        'activate/<uidb64>/<token>/',
+        'email-verify/',
         views.UserVerificationAPIView.as_view(),
-        name='activate',
+        name='verify',
     ),
     path(
-        'resend-activation-link/',
+        'resend-verification-link/',
         views.ResendVerificationLinkAPIView.as_view(),
-        name='resend_activation_link',
+        name='resend_verification_link',
     ),
     path('me/', views.ManageUserView.as_view(), name='me'),
     path(
@@ -40,7 +40,7 @@ urlpatterns = [
         name='password_reset_request',
     ),
     path(
-        'reset-password/confirm/<uidb64>/<token>/',
+        'reset-password/confirm',
         views.PasswordResetConfirmAPIView.as_view(),
         name='password_reset_confirm',
     ),

@@ -65,6 +65,7 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "core.middleware.CookieTokenAuthenticationMiddleware",
+    "core.middleware.CookieOTPTokenAuthenticationMiddleware",
     # "core.middleware.CustomCsrfViewMiddleware",
 ]
 
@@ -179,6 +180,7 @@ CORS_ALLOW_ALL_ORIGINS = False
 if DEBUG:
     CORS_ALLOW_CREDENTIALS = True
     CORS_ALLOWED_ORIGINS = ['http://localhost:3000', 'http://127.0.0.1:3000']
+    CLIENT_HOST = env('CLIENT_HOST')
 
 # Email settings
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'

@@ -14,7 +14,7 @@ from django.contrib.sites.shortcuts import get_current_site
 from django.conf import settings
 from django.core.mail import send_mail
 from django.urls import reverse
-from django.utils.http import urlsafe_base64_encode
+from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.utils.encoding import force_bytes, force_text
 
 # from django.middleware.csrf import get_token
@@ -34,9 +34,12 @@ def verification_email_data(request):
     """returns the subject, body and to email for user verification"""
     scheme = request.scheme
     token = default_token_generator.make_token(request.user)
-    current_site = get_current_site(request)
+    uidb64 = urlsafe_base64_encode(force_bytes(request.user.pk))
+
+    client_site = settings.CLIENT_HOST
+
     mail_subject = 'Verify your account'
-    message = f'Click the link to verify your email: {scheme}://{current_site}{reverse("user:activate", kwargs={"uidb64": urlsafe_base64_encode(force_bytes(request.user.pk)), "token": token})}'  # noqa: E501
+    message = f'Click the link to verify your email: {scheme}://{client_site}/auth/email-verify?uidb64={uidb64}&token={token}'  # noqa: E501
     data = {
         'email_body': message,
         'to_email': request.user.email,
@@ -59,35 +62,53 @@ class CreateUserView(generics.CreateAPIView):
 
         # Generate token for email verification
         token = default_token_generator.make_token(user)
+        uidb64 = urlsafe_base64_encode(force_bytes(user.pk))
+
         scheme = request.scheme
         # Send verification email
-        current_site = get_current_site(request)
+
+        client_site = settings.CLIENT_HOST
+
         mail_subject = 'Activate your account'
-        message = f'Click the link to verify your email: {scheme}://{current_site}{reverse("user:activate", kwargs={"uidb64": urlsafe_base64_encode(force_bytes(user.pk)), "token": token})}'  # noqa: E501
+        message = f'Click the link to verify your email: {scheme}://{client_site}/auth/email-verify?uidb64={uidb64}&token={token}'
+        # message = f'Click the link to verify your email: {scheme}://{current_site}{reverse("user:verify", kwargs={"uidb64": urlsafe_base64_encode(force_bytes(user.pk)), "token": token})}'  # noqa: E501
         send_mail(
             mail_subject, message, from_email='', recipient_list=[user.email]
         )
-        # data = verification_email_data(request)
-        # EmailUtil.send_email(data=data)
 
         # Create authentication token
         token, _ = Token.objects.get_or_create(user=user)
 
-        return Response(
-            {
-                'token': token.key,
-                'message': 'Please check your email for verification',
-            },
-            status=status.HTTP_201_CREATED,
+        response_data = {'token': token.key}
+        response = Response(response_data)
+
+        response.set_cookie(
+            key='auth_token',
+            value=token.key,
+            httponly=True,
+            secure=(not settings.DEBUG),  # Use True in production
+            samesite='Strict',
         )
 
+        # return Response(
+        #     {
+        #         'token': token.key,
+        #         'message': 'Please check your email for verification',
+        #     },
+        #     status=status.HTTP_201_CREATED,
+        # )
 
-class UserVerificationAPIView(generics.GenericAPIView):
-    """Verify user's email link"""
+        return response
+
+
+class UserVerificationAPIView(APIView):
+    """Verify user's email via link"""
 
     permission_classes = [permissions.AllowAny]
 
-    def get(self, request, uidb64, token):
+    def get(self, request):
+        uidb64 = request.query_params.get('uidb64')
+        token = request.query_params.get('token')
         try:
             uid = urlsafe_base64_decode(uidb64).decode()
             user = get_user_model().objects.get(pk=uid)
@@ -95,7 +116,7 @@ class UserVerificationAPIView(generics.GenericAPIView):
             TypeError,
             ValueError,
             OverflowError,
-            get_user_model.DoesNotExist,
+            get_user_model().DoesNotExist,
         ):
             user = None
         if user is not None and default_token_generator.check_token(
@@ -259,12 +280,15 @@ class PasswordResetRequestAPIView(generics.CreateAPIView):
             user = get_user_model().objects.get(email=email)
             # Generate password reset token
             scheme = request.scheme
-            uid = urlsafe_base64_encode(force_bytes(user.pk))
+            uidb64 = urlsafe_base64_encode(force_bytes(user.pk))
             token = default_token_generator.make_token(user)
             # Construct reset password link
-            current_site = get_current_site(request)
+            # current_site = get_current_site(request)
 
-            reset_password_link = f'{scheme}://{current_site}{reverse("user:password_reset_confirm",kwargs={"uidb64": uid, "token": token})}'  # noqa: E501
+            client_site = settings.CLIENT_HOST
+            reset_password_link = f'{scheme}://{client_site}/auth/reset-password?uidb64={uidb64}&token={token}'
+
+            # reset_password_link = f'{scheme}://{current_site}{reverse("user:password_reset_confirm",kwargs={"uidb64": uid, "token": token})}'  # noqa: E501
 
             # Send email with password reset link
             subject = 'Password Reset'
@@ -289,7 +313,9 @@ class PasswordResetConfirmAPIView(generics.CreateAPIView):
 
     serializer_class = PasswordResetConfirmSerializer
 
-    def get(self, request, uidb64, token):
+    def get(self, request):
+        uidb64 = request.query_params.get('uidb64')
+        token = request.query_params.get('token')
         try:
             # Decode the uidb64 and validate the token
             uid = force_text(urlsafe_base64_decode(uidb64))
@@ -315,10 +341,13 @@ class PasswordResetConfirmAPIView(generics.CreateAPIView):
             )
         # TO-DO: Dont show post form if token is invalid/returns 400 code
 
-    def post(self, request, uidb64, token):
+    def post(self, request):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         password = serializer.validated_data['password']
+        uidb64 = request.query_params.get('uidb64')
+        token = request.query_params.get('token')
+
         try:
             uid = force_text(urlsafe_base64_decode(uidb64))
             user = get_user_model().objects.get(pk=uid)
