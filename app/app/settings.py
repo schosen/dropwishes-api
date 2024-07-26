@@ -48,7 +48,7 @@ INSTALLED_APPS = [
     'rest_framework.authtoken',
     'drf_spectacular',
     'drfpasswordless',
-    # 'corsheaders',
+    'corsheaders',
     "core",
     'user',
     "wishlist",
@@ -56,7 +56,7 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
-    # 'corsheaders.middleware.CorsMiddleware',
+    "corsheaders.middleware.CorsMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -64,6 +64,9 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "core.middleware.CookieTokenAuthenticationMiddleware",
+    "core.middleware.CookieOTPTokenAuthenticationMiddleware",
+    # "core.middleware.CustomCsrfViewMiddleware",
 ]
 
 ROOT_URLCONF = "app.urls"
@@ -172,10 +175,12 @@ SPECTACULAR_SETTINGS = {
     'COMPONENT_SPLIT_REQUEST': True,
 }
 
-# CORS_ALLOWED_ORIGINS = ['http://localhost:3000', 'http://127.0.0.1:3000']
 
-# CORS_ORIGIN_ALLOW_ALL = False
-# CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOW_ALL_ORIGINS = False
+if DEBUG:
+    CORS_ALLOW_CREDENTIALS = True
+    CORS_ALLOWED_ORIGINS = ['http://localhost:3000', 'http://127.0.0.1:3000']
+    CLIENT_HOST = env('CLIENT_HOST')
 
 # Email settings
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'

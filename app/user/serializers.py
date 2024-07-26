@@ -17,7 +17,7 @@ class UserSerializer(serializers.ModelSerializer):
 
     # email_verify and password field to verify email
     # and password, unsure if this will work
-    confirm_email = serializers.EmailField(required=True, write_only=True)
+    # confirm_email = serializers.EmailField(required=True, write_only=True)
     confirm_password = serializers.CharField(
         max_length=128,
         style={'input_type': 'password'},
@@ -40,7 +40,7 @@ class UserSerializer(serializers.ModelSerializer):
         model = get_user_model()
         fields = [
             'email',
-            'confirm_email',
+            # 'confirm_email',
             'password',
             'confirm_password',
             'first_name',
@@ -71,13 +71,13 @@ class UserSerializer(serializers.ModelSerializer):
             validated_data['password'], self.context['request'].user
         )
 
-        if validated_data['email'] != validated_data['confirm_email']:
-            raise serializers.ValidationError(
-                {'confirm_email': _("The two email fields didn't match.")}
-            )
+        # if validated_data['email'] != validated_data['confirm_email']:
+        #     raise serializers.ValidationError(
+        #         {'confirm_email': _("The two email fields didn't match.")}
+        #     )
 
         # remove confirm_email and confirm_password fields
-        validated_data.pop('confirm_email', None)
+        # validated_data.pop('confirm_email', None)
         validated_data.pop('confirm_password', None)
 
         return get_user_model().objects.create_user(**validated_data)
