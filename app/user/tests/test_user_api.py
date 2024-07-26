@@ -245,7 +245,8 @@ class PrivateUserApiTests(TestCase):
     # """Test changing email sends new verification link"""
 
     # def test_request_reset_password(self):
-    # """Test request reset password sends link with token and successfully submits requests"""
+    # """Test request reset password sends link
+    # with token and successfully submits requests"""
 
     def test_logout_user(self):
         """Test log out user"""

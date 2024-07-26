@@ -1,10 +1,11 @@
 from django.utils.deprecation import MiddlewareMixin
-from rest_framework.authentication import get_authorization_header
 from rest_framework.authtoken.models import Token
 from rest_framework.exceptions import AuthenticationFailed
-from django.middleware.csrf import CsrfViewMiddleware
 from django.urls import resolve
 from django.conf import settings
+
+# from rest_framework.authentication import get_authorization_header
+# from django.middleware.csrf import CsrfViewMiddleware
 
 
 class CookieTokenAuthenticationMiddleware(MiddlewareMixin):
@@ -68,7 +69,8 @@ class CookieOTPTokenAuthenticationMiddleware:
 #     and sets in X_CSRFTOKEN header
 #     """
 
-#     def process_view(self, request, callback, callback_args, callback_kwargs):
+#     def process_view(self,
+# request, callback, callback_args, callback_kwargs):
 #         if getattr(request, 'user', None) and request.user.is_authenticated:
 #             # Extract the CSRF token from the cookie
 #             csrf_token = request.COOKIES.get('csrftoken')

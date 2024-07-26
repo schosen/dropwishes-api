@@ -10,10 +10,8 @@ from rest_framework.response import Response
 from rest_framework.authtoken.models import Token
 from django.contrib.auth import update_session_auth_hash, get_user_model
 from django.contrib.auth.tokens import default_token_generator
-from django.contrib.sites.shortcuts import get_current_site
 from django.conf import settings
 from django.core.mail import send_mail
-from django.urls import reverse
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.utils.encoding import force_bytes, force_text
 
@@ -70,7 +68,7 @@ class CreateUserView(generics.CreateAPIView):
         client_site = settings.CLIENT_HOST
 
         mail_subject = 'Activate your account'
-        message = f'Click the link to verify your email: {scheme}://{client_site}/auth/email-verify?uidb64={uidb64}&token={token}'
+        message = f'Click the link to verify your email: {scheme}://{client_site}/auth/email-verify?uidb64={uidb64}&token={token}'  # noqa: E501
         # message = f'Click the link to verify your email: {scheme}://{current_site}{reverse("user:verify", kwargs={"uidb64": urlsafe_base64_encode(force_bytes(user.pk)), "token": token})}'  # noqa: E501
         send_mail(
             mail_subject, message, from_email='', recipient_list=[user.email]
@@ -80,7 +78,7 @@ class CreateUserView(generics.CreateAPIView):
         token, _ = Token.objects.get_or_create(user=user)
 
         response_data = {'token': token.key}
-        response = Response(response_data)
+        response = Response(response_data, status.HTTP_201_CREATED)
 
         response.set_cookie(
             key='auth_token',
@@ -167,7 +165,8 @@ class ResendVerificationLinkAPIView(generics.GenericAPIView):
 class CreateTokenView(ObtainAuthToken):
     """
     Create a new auth token for user.
-    Override default ObtainAuthToken view from rest_framework to set the token into a
+    Override default ObtainAuthToken view from
+    rest_framework to set the token into a
     HttpOnly cookie.
     The 'secure' option will depend on the settings.DEBUG value.
     """
@@ -196,7 +195,7 @@ class CreateTokenView(ObtainAuthToken):
         # response.set_cookie(
         #     key='csrftoken',
         #     value=csrf_token,
-        #     httponly=False,  # CSRF token needs to be accessible by JavaScript
+        #     httponly=False,
         #     secure=(not settings.DEBUG),  # Use True in production
         #     samesite='Strict',
         # )
@@ -286,7 +285,7 @@ class PasswordResetRequestAPIView(generics.CreateAPIView):
             # current_site = get_current_site(request)
 
             client_site = settings.CLIENT_HOST
-            reset_password_link = f'{scheme}://{client_site}/auth/reset-password?uidb64={uidb64}&token={token}'
+            reset_password_link = f'{scheme}://{client_site}/auth/reset-password?uidb64={uidb64}&token={token}'  # noqa: E501
 
             # reset_password_link = f'{scheme}://{current_site}{reverse("user:password_reset_confirm",kwargs={"uidb64": uid, "token": token})}'  # noqa: E501
 
