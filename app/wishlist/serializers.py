@@ -7,7 +7,6 @@ from rest_framework import serializers
 from core.models import Wishlist, Product
 from django.core.files.base import ContentFile
 import base64
-import uuid
 
 
 class ProductSerializer(serializers.ModelSerializer):
@@ -38,7 +37,7 @@ class ProductSerializer(serializers.ModelSerializer):
             image = ContentFile(base64.b64decode(imgstr), name=f'temp.{ext}')
         return image
 
-    ## modify create method to handle base64-encoded images
+    # modify create method to handle base64-encoded images
     # def create(self, validated_data):
     #     """Create a product with optional base64 image."""
 

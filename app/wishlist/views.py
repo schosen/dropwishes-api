@@ -11,7 +11,7 @@ from drf_spectacular.utils import (
 
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from rest_framework import viewsets, mixins, status, parsers
+from rest_framework import viewsets, mixins, status
 from rest_framework.authentication import TokenAuthentication
 from rest_framework.permissions import IsAuthenticated
 
@@ -151,7 +151,8 @@ class MergeWishlistView(
             )
 
         for wishlist_data in local_wishlists:
-            # Create or update the wishlist, products are handled by WishlistSerializer
+            # Create or update the wishlist,
+            # products are handled by WishlistSerializer
             wishlist_serializer = self.get_serializer(data=wishlist_data)
             wishlist_serializer.is_valid(raise_exception=True)
             wishlist_serializer.save(user=request.user)
@@ -169,7 +170,8 @@ class MergeWishlistView(
             #     for product_data in products_data:
             #         product_data['user'] = (
             #             request.user.id
-            #         )  # Ensure the product is linked to the authenticated user
+            #         )
+            # Ensure the product is linked to the authenticated user
             #         product_serializer = serializers.ProductSerializer(
             #             data=product_data, context={'request': request}
             #         )
