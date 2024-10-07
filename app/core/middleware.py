@@ -11,7 +11,7 @@ from django.conf import settings
 class CookieTokenAuthenticationMiddleware(MiddlewareMixin):
     """
     Middleware that extracts auth token from cookie and
-    sets Authorization header
+    sets it as an Authorization header
     """
 
     def process_request(self, request):
