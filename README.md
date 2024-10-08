@@ -34,6 +34,8 @@ docker-compose down
 
 After build and run, you can find api documentation at `http://localhost:8000/api/docs/`
 
+Admin url is `http://127.0.0.1:8000/admin/login/`
+
 
 ## Tests
 

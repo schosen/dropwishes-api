@@ -93,7 +93,7 @@ class Wishlist(models.Model):
     )
     title = models.CharField(max_length=255)
     description = models.TextField(blank=True)
-    occasion_date = models.DateField(blank=True)
+    occasion_date = models.DateField(blank=True, null=True)
     address = models.CharField(max_length=255, blank=True)
     products = models.ManyToManyField("Product")
     created_at = models.DateTimeField(auto_now_add=True)
