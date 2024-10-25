@@ -14,6 +14,7 @@ from rest_framework.response import Response
 from rest_framework import viewsets, mixins, status
 from rest_framework.authentication import TokenAuthentication
 from rest_framework.permissions import IsAuthenticated
+from user.permissions import IsOwnerOrReadOnly, PublicReservePermission
 from django.shortcuts import get_list_or_404
 from django.conf import settings
 from core.models import Wishlist, Product
@@ -73,7 +74,9 @@ class WishlistViewSet(viewsets.ModelViewSet):
     def generate_share_link(self, request, pk=None):
         """Generates a link for users to view wishlists"""
         user = request.user
-        wishlist_ids = request.data.get('wishlistIds', [])
+
+        print("REQUEST = ", request.data)
+        wishlist_ids = request.data
 
         if not wishlist_ids:
             return Response(
@@ -176,7 +179,7 @@ class ProductViewSet(
     serializer_class = serializers.ProductSerializer
     queryset = Product.objects.all()
     authentication_classes = [TokenAuthentication]
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsOwnerOrReadOnly]
 
     def get_queryset(self):
         """Filter queryset to authenticated user."""
@@ -212,26 +215,78 @@ class ProductViewSet(
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    @action(detail=True, methods=['post'])
+    @action(
+        detail=True,
+        methods=['post'],
+        permission_classes=[PublicReservePermission],
+    )
     def reserve(self, request, pk=None):
-        product = self.get_object()
-        wishlist = product.wishlist
+        """
+        reserve wishlist product
+        """
+        try:
+            product = self.get_object()
+            wishlist = product.wishlist
 
-        if request.user == wishlist.owner:
+            if request.user == wishlist.owner:
+                return Response(
+                    {
+                        "error": "Owners cannot reserve their own wishlist items"
+                    },
+                    status=status.HTTP_403_FORBIDDEN,
+                )
+
+            product.is_reserved = True
+
+            # if request.user.is_authenticated:
+            #     product.reserved_by = request.user
+            # else:
+            #     product.reserved_by_guest = request.data.get('guest_name', 'Guest')
+
+            product.save()
             return Response(
-                {"error": "Owners cannot reserve their own wishlist items"},
-                status=status.HTTP_403_FORBIDDEN,
+                {"message": "Product reserved successfully"},
+                status=status.HTTP_200_OK,
+            )
+        except Product.DoesNotExist:
+            return Response(
+                {'error': 'Product not found'},
+                status=status.HTTP_404_NOT_FOUND,
             )
 
-        product.is_reserved = True
+    @action(
+        detail=True,
+        methods=['post'],
+        permission_classes=[PublicReservePermission],
+    )
+    def unreserve(self, request, pk=None):
+        """
+        unreserve wishlist product
+        """
+        try:
+            product = self.get_object()
+            wishlist = product.wishlist
 
-        # if request.user.is_authenticated:
-        #     product.reserved_by = request.user
-        # else:
-        #     product.reserved_by_guest = request.data.get('guest_name', 'Guest')
+            if request.user == wishlist.owner:
+                return Response(
+                    {
+                        "error": "Owners cannot reserve their own wishlist items"
+                    },
+                    status=status.HTTP_403_FORBIDDEN,
+                )
 
-        product.save()
-        return Response({"message": "Product reserved"})
+            product.is_reserved = False
+
+            product.save()
+            return Response(
+                {"message": "Product unreserved, successfully"},
+                status=status.HTTP_200_OK,
+            )
+        except Product.DoesNotExist:
+            return Response(
+                {'error': 'Product not found'},
+                status=status.HTTP_404_NOT_FOUND,
+            )
 
 
 class MergeWishlistView(

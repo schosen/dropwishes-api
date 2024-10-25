@@ -29,3 +29,20 @@ class IsAdminOrReadOnly(permissions.BasePermission):
             return True
 
         return bool(request.user and request.user.is_staff)
+
+
+class PublicReservePermission(permissions.BasePermission):
+    """
+    Allow non-authenticated users to reserve a product, but restrict other actions.
+    """
+
+    def has_permission(self, request, view):
+        # Allow unauthenticated users to reserve items
+        if view.action == 'reserve':
+            return True
+
+        if view.action == 'unreserve':
+            return True
+
+        # Otherwise, default to checking if the user is authenticated
+        return request.user and request.user.is_authenticated
