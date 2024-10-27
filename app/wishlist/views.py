@@ -119,6 +119,7 @@ class WishlistViewSet(viewsets.ModelViewSet):
         detail=False,
         methods=['get'],
         url_path='view/(?P<user_uuid>[-\w]+)/(?P<wishlist_ids>[-\w,]+)',
+        permission_classes=[IsOwnerOrReadOnly],
     )
     def view_shared_wishlist(self, request, user_uuid, wishlist_ids):
         print("UUID = ", user_uuid)
@@ -179,7 +180,7 @@ class ProductViewSet(
     serializer_class = serializers.ProductSerializer
     queryset = Product.objects.all()
     authentication_classes = [TokenAuthentication]
-    permission_classes = [IsOwnerOrReadOnly]
+    permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
         """Filter queryset to authenticated user."""
@@ -190,11 +191,17 @@ class ProductViewSet(
         if assigned_only:
             queryset = queryset.filter(wishlist__isnull=False)
 
-        return (
-            queryset.filter(user=self.request.user)
-            .order_by('-name')
-            .distinct()
-        )
+        # Filter by user only if the user is authenticated
+        if self.request.user.is_authenticated:
+            queryset = queryset.filter(user=self.request.user)
+
+        return queryset.order_by('-name').distinct()
+
+        # return (
+        #     queryset.filter(user=self.request.user)
+        #     .order_by('-name')
+        #     .distinct()
+        # )
 
     def get_serializer_class(self):
         """upload image for authenticated user."""
@@ -217,7 +224,7 @@ class ProductViewSet(
 
     @action(
         detail=True,
-        methods=['post'],
+        methods=['patch'],
         permission_classes=[PublicReservePermission],
     )
     def reserve(self, request, pk=None):
@@ -226,9 +233,9 @@ class ProductViewSet(
         """
         try:
             product = self.get_object()
-            wishlist = product.wishlist
+            owner = product.user
 
-            if request.user == wishlist.owner:
+            if request.user == owner:
                 return Response(
                     {
                         "error": "Owners cannot reserve their own wishlist items"
@@ -256,7 +263,7 @@ class ProductViewSet(
 
     @action(
         detail=True,
-        methods=['post'],
+        methods=['patch'],
         permission_classes=[PublicReservePermission],
     )
     def unreserve(self, request, pk=None):
@@ -265,9 +272,9 @@ class ProductViewSet(
         """
         try:
             product = self.get_object()
-            wishlist = product.wishlist
+            owner = product.user
 
-            if request.user == wishlist.owner:
+            if request.user == owner:
                 return Response(
                     {
                         "error": "Owners cannot reserve their own wishlist items"
