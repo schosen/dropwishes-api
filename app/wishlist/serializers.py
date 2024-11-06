@@ -28,6 +28,7 @@ class ProductSerializer(serializers.ModelSerializer):
             "price",
             "notes",
             "image",
+            "is_reserved",
         ]
         read_only_fields = ["id"]
 
@@ -88,8 +89,8 @@ class WishlistSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Wishlist
-        fields = ["id", "title", "occasion_date", "products", "user"]
-        read_only_fields = ["id", "user"]
+        fields = ["id", "title", "occasion_date", "products", "user", "uuid"]
+        read_only_fields = ["id", "user", "uuid"]
 
     def _get_or_create_products(self, products, wishlist):
         """Handle getting or creating products as needed."""

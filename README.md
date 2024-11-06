@@ -6,27 +6,27 @@ Wishlist API
 
 Create migrations files:
 ```
-docker-compose run --rm app sh -c "python manage.py makemigrations"
+docker compose run --rm app sh -c "python manage.py makemigrations"
 ```
 
 Run command to wait for database to build and then run migrate locally:
 ```
-docker-compose run --rm app sh -c "python manage.py wait_for_db && python manage.py migrate"
+docker compose run --rm app sh -c "python manage.py wait_for_db && python manage.py migrate"
 ```
 
 build application locally:
 ```
-docker-compose build
+docker compose build
 ```
 
 run application:
 ```
-docker-compose up
+docker compose up
 ```
 
 to stop and remove containers and volumes:
 ```
-docker-compose down
+docker compose down
 ```
 
 
@@ -41,12 +41,12 @@ Admin url is `http://127.0.0.1:8000/admin/login/`
 
 Run tests locally:
 ```
-docker-compose run --rm app sh -c "python manage.py test"
+docker compose run --rm app sh -c "python manage.py test"
 ```
 
 Run linting locally:
 ```
-docker-compose run --rm app sh -c "python manage.py wait_for_db && flake8"
+docker compose run --rm app sh -c "python manage.py wait_for_db && flake8"
 ```
 
 ## Pipeline

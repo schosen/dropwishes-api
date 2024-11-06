@@ -39,6 +39,7 @@ class WishlistViewSet(viewsets.ModelViewSet):
     queryset = Wishlist.objects.all()
     authentication_classes = [TokenAuthentication]
     permission_classes = [IsAuthenticated]
+    lookup_field = 'uuid'  # Use UUID as the lookup field
 
     def _params_to_ints(self, qs):
         """Convert a list of strings to integers."""
@@ -110,7 +111,7 @@ class WishlistViewSet(viewsets.ModelViewSet):
         # Generate the UUID-based link that includes multiple wishlists
         scheme = request.scheme
         client_site = settings.CLIENT_HOST
-        wishlist_ids_str = ','.join([str(w.id) for w in wishlists])
+        wishlist_ids_str = '-'.join([str(w.id) for w in wishlists])
         share_link = f"{scheme}://{client_site}/wishlists/view/{user.uuid}/{wishlist_ids_str}"
 
         return Response({'shareLink': share_link})
@@ -126,7 +127,7 @@ class WishlistViewSet(viewsets.ModelViewSet):
         print("WISHLIST ID =", wishlist_ids)
 
         # Split wishlist_ids by commas
-        wishlist_ids_list = wishlist_ids.split(',')
+        wishlist_ids_list = wishlist_ids.split('-')
 
         # Filter the wishlists by ids and user uuid
         wishlists = Wishlist.objects.filter(
