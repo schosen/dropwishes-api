@@ -67,7 +67,7 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     email = models.EmailField(max_length=255, unique=True)
     first_name = models.CharField(max_length=255)
-    uuid = models.UUIDField(default=uuid.uuid4, editable=False)
+    uuid = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
     last_name = models.CharField(max_length=255, blank=True)
     gender = models.CharField(
         max_length=255, choices=GENDER_CHOICES, blank=True
@@ -96,6 +96,10 @@ class Wishlist(models.Model):
     occasion_date = models.DateField(blank=True, null=True)
     address = models.CharField(max_length=255, blank=True)
     products = models.ManyToManyField("Product")
+    is_public = models.BooleanField(default=False)
+    uuid = models.UUIDField(
+        default=uuid.uuid4, editable=False, unique=True
+    )  # db_index=True  - Add an index for optimized lookups
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -127,6 +131,7 @@ class Product(models.Model):
     link = models.URLField(max_length=255, blank=True, null=True)
     image = models.ImageField(null=True, upload_to=product_image_file_path)
     notes = models.TextField(blank=True)
+    is_reserved = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

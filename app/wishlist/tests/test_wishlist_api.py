@@ -97,7 +97,7 @@ class PrivateWishlistApiTests(TestCase):
         """Test get wishlist detail."""
         wishlist = create_wishlist(user=self.user)
 
-        url = wishlist_detail_url(wishlist.id)
+        url = wishlist_detail_url(wishlist.uuid)
         res = self.client.get(url)
 
         serializer = WishlistDetailSerializer(wishlist)
@@ -119,7 +119,7 @@ class PrivateWishlistApiTests(TestCase):
         wishlist = self.client.post(WISHLIST_URL, payload, format="json")
 
         update_payload = {"products": []}
-        url = wishlist_detail_url(wishlist.data["id"])
+        url = wishlist_detail_url(wishlist.data["uuid"])
         res = self.client.patch(url, update_payload, format="json")
 
         self.assertEqual(res.status_code, status.HTTP_200_OK)
@@ -129,7 +129,7 @@ class PrivateWishlistApiTests(TestCase):
         """Test create product when updating a wishlist."""
         wishlist = create_wishlist(user=self.user)
         payload = {"products": [{"name": "Pink Top", "price": 10.99}]}
-        url = wishlist_detail_url(wishlist.id)
+        url = wishlist_detail_url(wishlist.uuid)
         res = self.client.patch(url, payload, format="json")
         self.assertEqual(res.status_code, status.HTTP_200_OK)
         new_product = Product.objects.get(
@@ -154,7 +154,7 @@ class PrivateWishlistApiTests(TestCase):
         }
         wishlist = self.client.post(WISHLIST_URL, payload, format="json")
         update_payload = {"products": [{"name": "Purse", "price": 20.00}]}
-        url = wishlist_detail_url(wishlist.data["id"])
+        url = wishlist_detail_url(wishlist.data["uuid"])
         res = self.client.patch(url, update_payload, format="json")
         wishlist_products = Product.objects.filter(
             wishlist=wishlist.data["id"]
@@ -184,7 +184,7 @@ class PrivateWishlistApiTests(TestCase):
         wishlist = create_wishlist(user=new_user)
         payload = {"products": [{"name": "Pink Top", "price": 10.99}]}
 
-        url = wishlist_detail_url(wishlist.id)
+        url = wishlist_detail_url(wishlist.uuid)
         res = self.client.patch(url, payload, format="json")
         self.assertEqual(res.status_code, status.HTTP_404_NOT_FOUND)
         self.assertFalse(
@@ -247,7 +247,7 @@ class PrivateWishlistApiTests(TestCase):
         )
 
         payload = {"title": "New wishlist title"}
-        url = wishlist_detail_url(wishlist.id)
+        url = wishlist_detail_url(wishlist.uuid)
         res = self.client.patch(url, payload)
 
         self.assertEqual(res.status_code, status.HTTP_200_OK)
@@ -271,7 +271,7 @@ class PrivateWishlistApiTests(TestCase):
             "description": "New wishlist description",
             "occasion_date": datetime.date(year=2023, month=9, day=10),
         }
-        url = wishlist_detail_url(wishlist.id)
+        url = wishlist_detail_url(wishlist.uuid)
         res = self.client.put(url, payload)
 
         self.assertEqual(res.status_code, status.HTTP_200_OK)
@@ -286,7 +286,7 @@ class PrivateWishlistApiTests(TestCase):
         wishlist = create_wishlist(user=self.user)
 
         payload = {"user": new_user.id}
-        url = wishlist_detail_url(wishlist.id)
+        url = wishlist_detail_url(wishlist.uuid)
         self.client.patch(url, payload)
 
         wishlist.refresh_from_db()
@@ -296,7 +296,7 @@ class PrivateWishlistApiTests(TestCase):
         """Test deleting a wishlist successful."""
         wishlist = create_wishlist(user=self.user)
 
-        url = wishlist_detail_url(wishlist.id)
+        url = wishlist_detail_url(wishlist.uuid)
         res = self.client.delete(url)
 
         self.assertEqual(res.status_code, status.HTTP_204_NO_CONTENT)
@@ -307,7 +307,7 @@ class PrivateWishlistApiTests(TestCase):
         new_user = create_user(email="user2@example.com", password="test123")
         wishlist = create_wishlist(user=new_user)
 
-        url = wishlist_detail_url(wishlist.id)
+        url = wishlist_detail_url(wishlist.uuid)
         res = self.client.delete(url)
 
         self.assertEqual(res.status_code, status.HTTP_404_NOT_FOUND)

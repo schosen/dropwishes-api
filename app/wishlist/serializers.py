@@ -20,7 +20,16 @@ class ProductSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Product
-        fields = ["id", "name", "link", "priority", "price", "notes", "image"]
+        fields = [
+            "id",
+            "name",
+            "link",
+            "priority",
+            "price",
+            "notes",
+            "image",
+            "is_reserved",
+        ]
         read_only_fields = ["id"]
 
     def validate_image(self, image):
@@ -80,8 +89,8 @@ class WishlistSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Wishlist
-        fields = ["id", "title", "occasion_date", "products"]
-        read_only_fields = ["id"]
+        fields = ["id", "title", "occasion_date", "products", "user", "uuid"]
+        read_only_fields = ["id", "user", "uuid"]
 
     def _get_or_create_products(self, products, wishlist):
         """Handle getting or creating products as needed."""

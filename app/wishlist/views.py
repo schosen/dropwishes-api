@@ -14,8 +14,9 @@ from rest_framework.response import Response
 from rest_framework import viewsets, mixins, status
 from rest_framework.authentication import TokenAuthentication
 from rest_framework.permissions import IsAuthenticated
-
-
+from user.permissions import IsOwnerOrReadOnly, PublicReservePermission
+from django.shortcuts import get_list_or_404
+from django.conf import settings
 from core.models import Wishlist, Product
 from wishlist import serializers
 
@@ -38,6 +39,7 @@ class WishlistViewSet(viewsets.ModelViewSet):
     queryset = Wishlist.objects.all()
     authentication_classes = [TokenAuthentication]
     permission_classes = [IsAuthenticated]
+    lookup_field = 'uuid'  # Use UUID as the lookup field
 
     def _params_to_ints(self, qs):
         """Convert a list of strings to integers."""
@@ -61,11 +63,96 @@ class WishlistViewSet(viewsets.ModelViewSet):
         """Return the serializer class for request."""
         if self.action == 'list':
             return serializers.WishlistSerializer
+        elif self.action == 'view_shared_wishlist':
+            return serializers.WishlistSerializer
         return self.serializer_class
 
     def perform_create(self, serializer):
         """Create a new wishlist."""
         serializer.save(user=self.request.user)
+
+    @action(detail=False, methods=['post'], url_path='generate-shared-link')
+    def generate_share_link(self, request, pk=None):
+        """Generates a link for users to view wishlists"""
+        user = request.user
+
+        wishlist_ids = request.data
+
+        if not wishlist_ids:
+            return Response(
+                {'error': 'No wishlists selected'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        wishlists = get_list_or_404(Wishlist, id__in=wishlist_ids, user=user)
+
+        incorrect_user = [
+            element for element in wishlists if element.user != user
+        ]
+
+        if incorrect_user:
+            return Response(
+                {"error": "Only the owner can share the wishlist"},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        # for wishlist in wishlists:
+        #     if wishlist.user == user:
+        #         return Response(
+        #             {"error": "Only the owner can share the wishlist"},
+        #             status=status.HTTP_403_FORBIDDEN,
+        #         )
+
+        for wishlist in wishlists:
+            wishlist.is_public = True
+            wishlist.save()
+
+        # Generate the UUID-based link that includes multiple wishlists
+        scheme = request.scheme
+        client_site = settings.CLIENT_HOST
+        wishlist_ids_str = '-'.join([str(w.id) for w in wishlists])
+        share_link = f"{scheme}://{client_site}/wishlists/view/{user.uuid}/{wishlist_ids_str}"
+
+        return Response({'shareLink': share_link})
+
+    @action(
+        detail=False,
+        methods=['get'],
+        url_path='view/(?P<user_uuid>[-\w]+)/(?P<wishlist_ids>[-\w,]+)',  # noqa: W605
+        permission_classes=[IsOwnerOrReadOnly],
+    )
+    def view_shared_wishlist(self, request, user_uuid, wishlist_ids):
+
+        # Split wishlist_ids by commas
+        wishlist_ids_list = wishlist_ids.split('-')
+
+        # Filter the wishlists by ids and user uuid
+        wishlists = Wishlist.objects.filter(
+            id__in=wishlist_ids_list, user__uuid=user_uuid
+        )
+
+        if not wishlists.exists():
+            return Response(
+                {'error': 'No wishlists found'},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        # Check if any wishlists are not public
+        non_public_wishlists = [
+            wishlist for wishlist in wishlists if not wishlist.is_public
+        ]
+
+        if non_public_wishlists:
+            return Response(
+                {
+                    'error': 'Invalid wishlist request, contains non-public wishlists'
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Serialize the wishlists to return the data
+        serializer = serializers.WishlistSerializer(wishlists, many=True)
+        return Response(serializer.data)
 
 
 @extend_schema_view(
@@ -75,7 +162,7 @@ class WishlistViewSet(viewsets.ModelViewSet):
                 'assigned_only',
                 OpenApiTypes.INT,
                 enum=[0, 1],
-                description='Filter by products assigned to wishlist.',
+                description='Filter by products assigned to wishlist. 0=False, 1-True',
             ),
         ]
     )
@@ -102,11 +189,17 @@ class ProductViewSet(
         if assigned_only:
             queryset = queryset.filter(wishlist__isnull=False)
 
-        return (
-            queryset.filter(user=self.request.user)
-            .order_by('-name')
-            .distinct()
-        )
+        # Filter by user only if the user is authenticated
+        if self.request.user.is_authenticated:
+            queryset = queryset.filter(user=self.request.user)
+
+        return queryset.order_by('-name').distinct()
+
+        # return (
+        #     queryset.filter(user=self.request.user)
+        #     .order_by('-name')
+        #     .distinct()
+        # )
 
     def get_serializer_class(self):
         """upload image for authenticated user."""
@@ -127,6 +220,80 @@ class ProductViewSet(
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+    @action(
+        detail=True,
+        methods=['patch'],
+        permission_classes=[PublicReservePermission],
+    )
+    def reserve(self, request, pk=None):
+        """
+        reserve wishlist product
+        """
+        try:
+            product = self.get_object()
+            owner = product.user
+
+            if request.user == owner:
+                return Response(
+                    {
+                        "error": "Owners cannot reserve their own wishlist items"
+                    },
+                    status=status.HTTP_403_FORBIDDEN,
+                )
+
+            product.is_reserved = True
+
+            # if request.user.is_authenticated:
+            #     product.reserved_by = request.user
+            # else:
+            #     product.reserved_by_guest =
+            # request.data.get('guest_name', 'Guest')
+
+            product.save()
+            return Response(
+                {"message": "Product reserved successfully"},
+                status=status.HTTP_200_OK,
+            )
+        except Product.DoesNotExist:
+            return Response(
+                {'error': 'Product not found'},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+    @action(
+        detail=True,
+        methods=['patch'],
+        permission_classes=[PublicReservePermission],
+    )
+    def unreserve(self, request, pk=None):
+        """
+        unreserve wishlist product
+        """
+        try:
+            product = self.get_object()
+            owner = product.user
+
+            if request.user == owner:
+                return Response(
+                    {
+                        "error": "Owners cannot reserve their own wishlist items"
+                    },
+                    status=status.HTTP_403_FORBIDDEN,
+                )
+
+            product.is_reserved = False
+
+            product.save()
+            return Response(
+                {"message": "Product unreserved, successfully"},
+                status=status.HTTP_200_OK,
+            )
+        except Product.DoesNotExist:
+            return Response(
+                {'error': 'Product not found'},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
 
 class MergeWishlistView(
     mixins.CreateModelMixin,
@@ -139,10 +306,11 @@ class MergeWishlistView(
     permission_classes = [IsAuthenticated]
 
     def create(self, request, *args, **kwargs):
-        """add locally saved wishlist to backend"""
+        """
+        add wishlist that is saved on users browser to backend
+        """
 
         local_wishlists = request.data.get('wishList', None)
-        print("local wishlist: ", local_wishlists)
 
         if not local_wishlists:
             return Response(
