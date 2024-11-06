@@ -76,7 +76,6 @@ class WishlistViewSet(viewsets.ModelViewSet):
         """Generates a link for users to view wishlists"""
         user = request.user
 
-        print("REQUEST = ", request.data)
         wishlist_ids = request.data
 
         if not wishlist_ids:
@@ -119,12 +118,10 @@ class WishlistViewSet(viewsets.ModelViewSet):
     @action(
         detail=False,
         methods=['get'],
-        url_path='view/(?P<user_uuid>[-\w]+)/(?P<wishlist_ids>[-\w,]+)',
+        url_path='view/(?P<user_uuid>[-\w]+)/(?P<wishlist_ids>[-\w,]+)',  # noqa: W605
         permission_classes=[IsOwnerOrReadOnly],
     )
     def view_shared_wishlist(self, request, user_uuid, wishlist_ids):
-        print("UUID = ", user_uuid)
-        print("WISHLIST ID =", wishlist_ids)
 
         # Split wishlist_ids by commas
         wishlist_ids_list = wishlist_ids.split('-')
@@ -249,7 +246,8 @@ class ProductViewSet(
             # if request.user.is_authenticated:
             #     product.reserved_by = request.user
             # else:
-            #     product.reserved_by_guest = request.data.get('guest_name', 'Guest')
+            #     product.reserved_by_guest =
+            # request.data.get('guest_name', 'Guest')
 
             product.save()
             return Response(
