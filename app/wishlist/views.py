@@ -19,6 +19,7 @@ from django.shortcuts import get_list_or_404
 from django.conf import settings
 from core.models import Wishlist, Product
 from wishlist import serializers
+from django.db.models import Prefetch
 
 
 @extend_schema_view(
@@ -50,7 +51,9 @@ class WishlistViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         """Retrieve wishlists for authenticated user."""
         products = self.request.query_params.get('products')
-        queryset = self.queryset
+        queryset = self.queryset.prefetch_related(
+            Prefetch('products', queryset=Product.objects.order_by('-id'))
+        )
         if products:
             product_ids = self._params_to_ints(products)
             queryset = queryset.filter(products__id__in=product_ids)
@@ -193,7 +196,7 @@ class ProductViewSet(
         if self.request.user.is_authenticated:
             queryset = queryset.filter(user=self.request.user)
 
-        return queryset.order_by('-name').distinct()
+        return queryset.order_by('-id').distinct()
 
         # return (
         #     queryset.filter(user=self.request.user)

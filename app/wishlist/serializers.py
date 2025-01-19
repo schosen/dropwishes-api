@@ -16,6 +16,7 @@ class ProductSerializer(serializers.ModelSerializer):
         # write_only=True,
         required=False,
         allow_null=True,
+        allow_blank=True,
     )
 
     class Meta:
@@ -109,6 +110,7 @@ class WishlistSerializer(serializers.ModelSerializer):
         """Create a wishlist."""
         products = validated_data.pop('products', [])
         wishlist = Wishlist.objects.create(**validated_data)
+        print("WISHLIST: ", wishlist)
         self._get_or_create_products(products, wishlist)
 
         return wishlist
